@@ -1,0 +1,44 @@
+#!/usr/bin/env node
+var path = require("path");
+var libString = require("../lib/js/string");
+var X = require("../src/x");
+var log = require("../lib/nodejs/log");
+log.setLevel(2);
+
+//init global
+var ParamsHelp = {
+	"e": "eval",
+	"P": "production",
+	"v": "verbose mode"
+}
+var env = {};
+var main = "main.x";
+var argv = [];
+env._nodeBin = process.argv.shift();
+env._xBin = process.argv.shift();
+var op = process.argv.shift();
+while(op){
+	switch(op){
+	case "-e":
+		var evalString = process.argv.shift();
+		eval(evalString);
+		break;
+	case "-v":
+		log.setLevel(3);
+		log.v("verbose mode enabled");
+		break;
+	case "-h":
+	case "--help":
+		throw libString.makeArgvHelp(ParamsHelp);
+		break;
+	default:
+		main = op;
+		argv.push(op);
+	}
+	op = process.argv.shift();
+}
+log.v(env);
+
+
+var x = new X(env);
+x.exec(main, argv);
