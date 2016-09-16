@@ -75,7 +75,8 @@ var grammar = {
 		"Unit": [["BasicUnit", "$$= $1"],
 						 ["PropertyUnit", "$$ = $1"],
 						 ["Arguments", "$$ = $1"],
-						 ["Operation", "$$ = $1;"]
+						 ["Operation", "$$ = $1;"],
+						 ["Array", "$$ = $1"]
 						],
 		"BasicUnit": [["Value", "$$ = $1"],
 									["Assignable", "$$ = $1"],
@@ -92,8 +93,8 @@ var grammar = {
 									 ["BracketUnit . Id", "$$ = ['get', [$1, $3]]"],
 									 ["BracketUnit [ BasicUnit ]", "$$ = ['get', [$1, $3]]"]
 									],
-		"Array": [[" BasicUnit , BasicUnit", "$$ = $1"],
-							[" Array , BasicUnit",  "$$ = $1"]
+		"Array": [[" BasicUnit , BasicUnit", "$$ = ['array', [$1, $3]]"],
+							[" Array , BasicUnit",  "$$ = $1; $1[1].push($3)"]
 						 ],
 		"Call": [["& BasicUnit ", "$$ = $2;"]],
 		"Arguments": [["@ Id", "$$ = ['arguments', [$2]]"],
