@@ -51,27 +51,27 @@ var grammar = {
     ["left", "*", "/"],
 		["left", "+", "-"]
 	],
-  "start": "Block",
+  "start": "Artical",
   "bnf": {
-		"Block": [["ExpressionList", "return $$ = $1"]],
+		"Artical": [["Paragraph", "return $$ = $1"]],
 		"Id": [[ "ID", "$$ = yytext"]],
 		"Property": [[ "PROPERTY", "$$ = yytext"]],
     "Null": [[ "_", "$$ = {type:'null'}" ]],
     "String": [[ "STRING", "$$ = ['string', yytext]" ]],
     "Number": [[ "NUMBER", "$$ = ['number', Number(yytext)]" ]],
-		"ExpressionList": [[ "Expression",  "$$ = ['expression', [yy.normalize($1)]];"],
-											 [ "ExpressionList ; Expression", "$$ = $1; $1[1].push(yy.normalize($3));"],
-											 [ "ExpressionList ;", "$$ = $1;"]
+		"Paragraph": [[ "Sentence",  "$$ = ['paragraph', [$1]];"],
+									 [ "Paragraph ; Sentence", "$$ = $1; $1[1].push($3);"],
+									 [ "Paragraph ;", "$$ = $1;"]
 											],
-		"Expression": [["Sentence", "$$ = $1;"],
-									 ["Assign", "$$ = $1;"]
+		"Sentence": [["DoSentence", "$$ = $1;"],
+								 ["AssignSentence", "$$ = $1;"]
+								],
+		"DoSentence": [["Unit", "$$ = ['do', [$1]];"],
+									 ["DoSentence Unit", "$$ = $1; $1[1].push($2)"]
 									],
-		"Sentence": [["Unit", "$$ = ['sentence', [$1]];"],
-							 ["Sentence Unit", "$$ = $1; $1[1].push($2)"]
-							],
-		"Assign": [["Assignable = Expression", "$$ = ['assign', $1, $3];"],
-							 ["Array = Expression", "$$ = ['assign', $1, $3];"]
-							],
+		"AssignSentence": [["Assignable = Sentence", "$$ = ['assign', $1, $3];"],
+											 ["Array = Sentence", "$$ = ['assign', $1, $3];"]
+											],
 		"Unit": [["BasicUnit", "$$= $1"],
 						 ["PropertyUnit", "$$ = $1"],
 						 ["Arguments", "$$ = $1"],

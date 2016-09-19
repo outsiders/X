@@ -25,6 +25,7 @@ function:
 
 */
 module.exports = X;
+var cache = {};
 function X(config){
 	var self = this;
 	if(!config) config = {};
@@ -34,7 +35,7 @@ function X(config){
 	if(!config.projectDir) config.projectDir = ".";
 	if(!config.baseDir) config.baseDir = config.projectDir;
 	if(!config.deps) config.deps = {};
-	self.funcs = {};
+	
 	self.global = {
 		config: config,
 		main: {},
@@ -44,9 +45,6 @@ function X(config){
 	self.filelist = {};
 	self.parser = parser;
 	self.parser.parser.yy= {
-		gettype: function(id){
-			return self.gettype(id);
-		},
 		compile: function(ast){
 			var yy = this;
 			if(!yy.lang) yy.lang = "nodejs";
@@ -58,6 +56,16 @@ function X(config){
 		ns: self.global.ns
 	}
 	self.internal = {
+		paragraph: function(param){
+			for(var i in param){
+				self.eval(param[i]);
+			}
+		},
+		sentence: function(param){
+			self.eval(param);
+		},
+		assign: function(){
+		},
 		env: {string: 1},
 		argv: {string: 1},
 		lang: {string: 1}
@@ -115,43 +123,23 @@ X.prototype.impl = function(scope){
 X.prototype.eval = function(ast){
 	var self = this;
 	var rtn;
-	for(var i in ast){
-		var e = ast[i];
-		rtn = self.impl(e[0], e[1]);
-	}
-	console.log(JSON.stringify(ast,undefined,2));
-	return rtn;
+	var id = ast[0];
+	var config = self.global.config;
+	if(self.internal[id])
+		return self.internal[id](ast);
+	if(cache[id]) return cache[id];	
+
+	var xFile = config.dispDir + "/def/" + id + ".x";
+	var json;
+	if(fs.existsSync(xFile))
+		 return cache[id] = self.parse(fs.readFileSync(xFile).toString());
+	//console.log(JSON.stringify(ast,undefined,2));
 }
 X.prototype.parse = function(str){
 	var self = this;
 	return self.parser.parse(str);
 }
-X.prototype.loadfunc = function(id){
+X.prototype.getdef = function(id){
 	var self = this;
-	var config = self.global.config;
-	if(self.funcs[id]) return self.funcs[id];
-	var xFile = config.dispDir + "/func/" + id + ".x";
-	var json;
-	if(fs.existsSync(xFile))
-		 return self.funcs[id] = self.parse(fs.readFileSync(xFile).toString());
-
-	return;
-	throw "File not exists: " +xFile;
-}
-X.prototype.gettype = function(id){
-	var self = this;
-	var config = self.global.config;
-	if(self.internal[id])
-		return "FUNCTIONID";
-	var func = self.loadfunc(id);
-//TODO write global
-	if(func) {
-		return "FUNCTIONID";
-	}
-	return "NEWID";
-	
-
-	return "LEFTOPERATORID"
-	return "RIGHTOPERATORID"
 
 }

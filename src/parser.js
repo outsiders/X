@@ -75,7 +75,7 @@ var parser = (function(){
 var o=function(k,v,o,l){for(o=o||{},l=k.length;l--;o[k[l]]=v);return o},$V0=[1,20],$V1=[1,26],$V2=[1,27],$V3=[1,28],$V4=[1,29],$V5=[1,21],$V6=[1,25],$V7=[1,18],$V8=[1,19],$V9=[1,16],$Va=[1,6,8,10,12,14,16,30,36,37,38],$Vb=[2,22],$Vc=[2,20],$Vd=[1,36],$Ve=[1,6,8,10,12,14,16,30,31,36,37,38],$Vf=[1,38],$Vg=[1,6,8,10,12,14,16,21,30,31,34,35,36,37,38,39,40],$Vh=[1,6,8,10,12,14,16,30,31,35,36,37,38],$Vi=[1,6,8,10,12,14,16,21,30,31,35,36,37,38],$Vj=[1,6,8,10,12,14,16,30,31,36,37,38,39];
 var parser = {trace: function trace() { },
 yy: {},
-symbols_: {"error":2,"Block":3,"ExpressionList":4,"Id":5,"ID":6,"Property":7,"PROPERTY":8,"Null":9,"_":10,"String":11,"STRING":12,"Number":13,"NUMBER":14,"Expression":15,";":16,"Sentence":17,"Assign":18,"Unit":19,"Assignable":20,"=":21,"Array":22,"BasicUnit":23,"PropertyUnit":24,"Arguments":25,"Operation":26,"Value":27,"Call":28,"BracketUnit":29,"{":30,"}":31,".":32,"[":33,"]":34,",":35,"&":36,"@":37,"(":38,")":39,"+":40,"$accept":0,"$end":1},
+symbols_: {"error":2,"Artical":3,"Paragraph":4,"Id":5,"ID":6,"Property":7,"PROPERTY":8,"Null":9,"_":10,"String":11,"STRING":12,"Number":13,"NUMBER":14,"Sentence":15,";":16,"DoSentence":17,"AssignSentence":18,"Unit":19,"Assignable":20,"=":21,"Array":22,"BasicUnit":23,"PropertyUnit":24,"Arguments":25,"Operation":26,"Value":27,"Call":28,"BracketUnit":29,"{":30,"}":31,".":32,"[":33,"]":34,",":35,"&":36,"@":37,"(":38,")":39,"+":40,"$accept":0,"$end":1},
 terminals_: {2:"error",6:"ID",8:"PROPERTY",10:"_",12:"STRING",14:"NUMBER",16:";",21:"=",30:"{",31:"}",32:".",33:"[",34:"]",35:",",36:"&",37:"@",38:"(",39:")",40:"+"},
 productions_: [0,[3,1],[5,1],[7,1],[9,1],[11,1],[13,1],[4,1],[4,3],[4,2],[15,1],[15,1],[17,1],[17,2],[18,3],[18,3],[19,1],[19,1],[19,1],[19,1],[19,1],[23,1],[23,1],[23,1],[23,1],[24,2],[29,3],[27,1],[27,1],[27,1],[20,1],[20,3],[20,4],[22,3],[22,3],[28,2],[25,2],[25,3],[26,3],[26,3]],
 performAction: function anonymous(yytext, yyleng, yylineno, yy, yystate /* action[1] */, $$ /* vstack */, _$ /* lstack */) {
@@ -99,10 +99,10 @@ case 6:
 this.$ = ['number', Number(yytext)]
 break;
 case 7:
-this.$ = ['expression', [yy.normalize($$[$0])]];
+this.$ = ['paragraph', [$$[$0]]];
 break;
 case 8:
-this.$ = $$[$0-2]; $$[$0-2][1].push(yy.normalize($$[$0]));
+this.$ = $$[$0-2]; $$[$0-2][1].push($$[$0]);
 break;
 case 9:
 this.$ = $$[$0-1];
@@ -111,7 +111,7 @@ case 10: case 11: case 19: case 35:
 this.$ = $$[$0];
 break;
 case 12:
-this.$ = ['sentence', [$$[$0]]];
+this.$ = ['do', [$$[$0]]];
 break;
 case 13:
 this.$ = $$[$0-1]; $$[$0-1][1].push($$[$0])
