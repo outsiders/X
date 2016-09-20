@@ -60,9 +60,9 @@ function X(config){
 			return param;
 		},
 		paragraph: function(param, scope){
-			var rtn;
+			var rtn = [];
 			for(var i in param){
-				rtn = self.eval(param[i], scope);
+				rtn[i] = self.eval(param[i], scope);
 			}
 			return rtn;
 		},
@@ -70,9 +70,6 @@ function X(config){
 // core
 			var result = self.do(param, scope);
 			return self.eval(result, scope);
-		},
-		assign: function(param, scope){
-			return scope[self.eval(param[0], scope)] = self.eval(param[1], scope);
 		},
 		scope: function(param, scope){
 			var newscope = {
@@ -90,9 +87,11 @@ X.prototype.exec = function(main, argv){
 	var self = this;
 	var config = self.global.config;
 	self.global.argv = argv || [];
-	var rtn = self.parse(fs.readFileSync(main).toString());
+	var ast = self.parse(fs.readFileSync(main).toString());
 	if(!self.scope.lang) self.scope.lang = "nodejs";
-	return self.eval(rtn, self.scope);
+	var result = self.eval(ast, self.scope);
+	console.log("!result");
+	console.log(result);
 }
 X.prototype.do = function(arr, scope){
 	self = this;
@@ -106,7 +105,7 @@ X.prototype.do = function(arr, scope){
 	}
 	if(propcount == arr.length)
 		return ['hash', hash];
-	return arr[arr.length - 1];
+	return [arr[arr.length - 1]];
 }
 X.prototype.compile= function(ast, yy){
 	self = this;
@@ -157,14 +156,14 @@ X.prototype.eval = function(ast, scope){
 	if(self.internal[id])
 		return self.internal[id](ast[1], scope);
 	if(scope.lang)
-		 rtn = self.gen(ast, scope.lang);
+		 rtn = self.gen(ast, scope.lang, scope);
 
 	if(rtn !== undefined) return rtn;
 
 	var pscope = scope;
 	while(pscope.parent){
 		pscope = pscope.parent;
-		rtn = self.gen(ast, pscope.lang);
+		rtn = self.gen(ast, pscope.lang, scope);
 		if(rtn !== undefined) return rtn;
 	}
 	
@@ -180,10 +179,11 @@ X.prototype.eval = function(ast, scope){
 
 X.prototype.parse = function(str){
 	var self = this;
+	if(str == "") return ['hash', {}];
 	return self.parser.parse(str);
 }
 
-X.prototype.gen = function(ast, lang){
+X.prototype.gen = function(ast, lang, scope){
 	console.log("!gen");
 	console.log(ast);
 	console.log(lang);
@@ -218,12 +218,20 @@ X.prototype.gen = function(ast, lang){
 	}
 	var ttfile = config.dispDir + "/concept/" + id + "/" + lang + ".tt";
 	if(fs.existsSync(ttfile))
-		return tmpl.render(ttfile, {
-			argv: ast[1]
+		return tmpl.render({
+			file: ttfile,
+			extend: {
+				eval: function(ast){
+					return self.eval(ast, scope);
+				}
+			}
+		}, {
+			argv: ast[1],
+			scope: scope
 		});
 	if(langconfig.deps)
 		for(var key in langconfig.deps){
-			rtn = self.gen(ast, key);
+			rtn = self.gen(ast, key, scope);
 			if(rtn !== undefined) return rtn;
 		}
 }
