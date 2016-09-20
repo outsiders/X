@@ -12,6 +12,7 @@ var grammar = {
 			"sp": "\\s*"
     },
     "rules": [
+      ["\\#[^\\n\\r]*[\\n\\r]+", "return"], 
       ["{sp}{int}{frac}?{exp}?\\b{sp}", 
 			 "yytext = yytext.replace(/\\s/g, ''); return 'NUMBER';"],
       ["{sp}\"(?:{esc}[\"bfnrt/{esc}]|{esc}u[a-fA-F0-9]{4}|[^\"{esc}])*\"{sp}",
@@ -60,17 +61,18 @@ var grammar = {
     "String": [[ "STRING", "$$ = ['string', yytext]" ]],
     "Number": [[ "NUMBER", "$$ = ['number', Number(yytext)]" ]],
 		"Paragraph": [[ "Sentence",  "$$ = ['paragraph', [$1]];"],
-									 [ "Paragraph ; Sentence", "$$ = $1; $1[1].push($3);"],
-									 [ "Paragraph ;", "$$ = $1;"]
-											],
+									[ "Paragraph ; Sentence", "$$ = $1; $1[1].push($3);"],
+									[ "Paragraph ;", "$$ = $1;"],
+									[ "{ Paragraph };", "$$ = ['scope', $1];"]
+								 ],
 		"Sentence": [["DoSentence", "$$ = $1;"],
 								 ["AssignSentence", "$$ = $1;"]
 								],
 		"DoSentence": [["Unit", "$$ = ['do', [$1]];"],
 									 ["DoSentence Unit", "$$ = $1; $1[1].push($2)"]
 									],
-		"AssignSentence": [["Assignable = Sentence", "$$ = ['assign', $1, $3];"],
-											 ["Array = Sentence", "$$ = ['assign', $1, $3];"]
+		"AssignSentence": [["Assignable = Sentence", "$$ = ['assign', [$1, $3]];"],
+											 ["Array = Sentence", "$$ = ['assign', [$1, $3]];"]
 											],
 		"Unit": [["BasicUnit", "$$= $1"],
 						 ["PropertyUnit", "$$ = $1"],
@@ -83,8 +85,8 @@ var grammar = {
 									["Call", "$$ = [$1]"],
 									["BracketUnit", "$$ = $1"]
 								 ],
-		"PropertyUnit": [["Property BasicUnit", "$$ = ['property', $1, $2]"]],
-		"BracketUnit": [["{ Unit }", "$$ = [$2]"]],
+		"PropertyUnit": [["Property BasicUnit", "$$ = ['property', [$1, $2]]"]],
+		"BracketUnit": [["( BasicUnit )", "$$ = [$2]"]],
 		"Value": [["Null", "$$ = $1"], 
 							["String", "$$ = $1"],
 							["Number", "$$ = $1"]
