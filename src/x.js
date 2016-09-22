@@ -34,6 +34,7 @@ function X(config){
 	self.deps = {};
 	if(!config.dispDir) config.dispDir = path.resolve(__dirname + "/..");
 	if(!config.projectDir) config.projectDir = ".";
+	if(!config.targetDir) config.targetDir = ".";
 	if(!config.baseDir) config.baseDir = config.projectDir;
 	if(!config.deps) config.deps = {};
 	
@@ -44,6 +45,7 @@ function X(config){
 	self.scope = {};
 	self.src = {};
 	self.filelist = {};
+	self.filecount = 0;
 	self.parser = parser;
 	self.parser.parser.yy= {
 		compile: function(ast){
@@ -63,15 +65,16 @@ function X(config){
 			var rtn = [];
 			for(var i in param){
 				var e = self.toes(param[i], scope);
-				console.log("!e")
-				console.log(e);
 				rtn = rtn.concat(e);
 			}
 			return ['paragraph', rtn];
 		},
 		do: function(param, scope){
 // core
+//			console.log("!do")
+//			console.log(JSON.stringify(param));
 			var result = self.do(param, scope);
+//			console.log(result);
 			return self.toes(result, scope);
 		},
 		scope: function(param, scope){
@@ -107,18 +110,30 @@ X.prototype.exec = function(main, argv){
 	if(!self.scope.lang)
 		self.scope.lang = "nodejs"
 	var result = self.eval(es, self.scope);
+	
 	console.log("!result");
 	console.log(result);
+
+	self.writefile();
+}
+X.prototype.gettype = function(){
 }
 X.prototype.do = function(arr, scope){
 	self = this;
 	var propcount = 0;
 	var hash= {};
+	var mainfunc = "";
 	for(var i in arr){
-		if(arr[i][0] == 'property'){
-			hash[arr[i][1][0]] = arr[i][1][1];
+		var form = arr[i][0];
+		var param = arr[i][1];
+		if(form == 'property'){
+			hash[param[0]] = param[1];
 			propcount ++;
-		}
+		}else if(form == 'id'){
+			var type = self.gettype(param);
+			if(type == "function")
+				mainfunc = param;
+		}		
 	}
 	if(propcount == arr.length)
 		return [['hash', hash]];
@@ -130,23 +145,59 @@ X.prototype.compile= function(ast, yy){
 
 	return ast;
 }
-X.prototype.xinternal = function(ast){
-	console.log('!xinternal');
-	console.log(ast);
+X.prototype.writefile = function(){
+	var self = this;
+	for(var key in self.filelist){
+		var tfilename = self.global.config.targetDir + "/" + key;
+		var config = self.filelist[key];
+
+		var str = config.content;
+		libFile.mkdirpSync(path.dirname(tfilename)); //to be acc
+		if(fs.existsSync(tfilename))
+					fs.unlinkSync(tfilename);
+		self.filecount ++;
+		var mode;
+		if(config.exec){
+					mode = 0555;
+					str = "#!/usr/bin/env "+ config.exec + "\n" + str;
+				}else{
+							mode = 0444;
+						}
+		fs.writeFileSync(tfilename, str, {mode: mode});
+	}
+}
+X.prototype.regfile = function(filename, config){
+	var self = this;
+	var rfile = path.relative(".", filename);
+	if(!self.filelist[rfile]){
+		self.filelist[rfile] = config;
+		self.filelist[rfile].content = [config.content];
+	}else{
+		self.filelist[rfile].content.push(config.content);
+	}
+}
+X.prototype.cmd = function(ast){
+//	console.log('!cmd');
+//	console.log(ast);
 	var self = this;
 	switch(ast[0]){
+	case "writefile":
+		for(var key in ast[1]){
+			self.regfile(key, ast[1][key]);
+		}
+		return 1;
 	case "paragraph":
-		return self.xinternal(ast[1][ast[1].length - 1]);
+		return self.cmd(ast[1][ast[1].length - 1]);
 	case "hash":
 		var hash = {};
 		for(var key in ast[1]){
-			hash[key] = self.xinternal(ast[1][key]);
+			hash[key] = self.cmd(ast[1][key]);
 		}
 		return hash;
 	case "array": 
 		var array = [];
 		for(var i in ast[1]){
-			array[i] = self.convert(ast[1][i]);
+			array[i] = self.cmd(ast[1][i]);
 		}
 		return array;
 	case "string":
@@ -167,49 +218,53 @@ X.prototype.toes = function(ast, scope){
 	var self = this;
 	var rtn;
 	if(!ast) return;
-	console.log("!toes");
-	console.log(ast);
-	console.log(scope);
+//	console.log("!toes");
+//	console.log(ast);
 	var id = ast[0];
 	if(self.internal[id]){
 		rtn = self.internal[id](ast[1], scope);
 	}else{
 		rtn = ast;
 	}
+//	console.log("!toes return");
+//	console.log(rtn);
 	return rtn;
 	
 }
+
 X.prototype.eval = function(ast, scope){
 	var self = this;
 	var rtn;
 	if(!ast) return;
-	console.log("!eval");
-	console.log(ast);
-	console.log(scope);
+//	console.log("!eval");
+//	console.log(ast);
+//	console.log(scope);
 	var id = ast[0];
 	var config = self.global.config;
-	if(scope.lang == 'xinternal')
-		return self.xinternal(ast, scope);
+	//this lang
 	if(scope.lang)
-		 rtn = self.gen(ast, scope.lang, scope);
-
-	if(rtn !== undefined) return rtn;
-	
+		 return self.gen(ast, scope.lang, scope);
+//	if(rtn !== undefined) return rtn;
+	//parent lang
 	var pscope = scope;
 	while(pscope.parent){
 		pscope = pscope.parent;
-		rtn = self.gen(ast, pscope.lang, scope);
-		if(rtn !== undefined) return rtn;
+		if(pscope.lag)
+			return self.gen(ast, pscope.lang, scope);
 	}
-	//native
+/*
+	//x
+	console.log("using x " + id);
+	
 	if(idcache[id])
-		return self.eval(idcache[id], scope);
+		return self.evalidcache[id], scope);
 	var xfile = config.dispDir + "/concept/" + id + ".x";
 	if(fs.existsSync(xfile)){
-		idcache[id] = self.parse(fs.readFileSync(xfile).toString());
+		idcache[id] = self.cmd(self.parse(fs.readFileSync(xfile).toString()));
 		return self.eval(idcache[id], scope);
 	}
-	throw "no id: "+ id;
+*/
+	throw "no id: "+ id + " " + scope.lang;
 }
 
 X.prototype.parse = function(str){
@@ -217,57 +272,82 @@ X.prototype.parse = function(str){
 	if(str == "") return ['hash', {}];
 	return self.parser.parse(str);
 }
+X.prototype.getconfig = function(lang){
+	var self = this;
+	var config = self.global.config;
+	var langconfig;
+	if(lang == "x"){
+		return {};
+	}
+	if(idcache[lang]){
+		langconfig = idcache[lang];
+	}else{
+		var xfile = config.dispDir + "/concept/" + lang + ".x";
+		if(!fs.existsSync(xfile))
+			throw "no lang: "+lang;
+		var langast = self.parse(fs.readFileSync(xfile).toString());
 
-X.prototype.gen = function(ast, lang, scope){
-	console.log("!gen");
-	console.log(ast);
-	console.log(lang);
+		langconfig = idcache[lang] = self.cmd(self.toes(langast));
+
+		var tmpdeps = langconfig.deps;
+		langconfig.deps = {};
+		if(typeof tmpdeps == "string")
+			langconfig.deps[tmpdeps] = 1;
+		else if(libObject.isArray(tmpdeps)) 
+			for(var i in tmpdeps)
+				langconfig.deps[tmpdeps[i]] = 1;
+		else
+			langconfig.deps = tmpdeps;
+	}
+	return langconfig;
+}
+X.prototype.gen = function(ast, lang, scope, superflag){
+//	console.log("!gen " + lang);
+//	console.log(ast);
 	var self = this;
 	var config = self.global.config;
 	var id = ast[0];
 	var rtn;
-	var langconfig = {};
-	if(lang != "x"){
-		if(idcache[lang]){
-			langconfig = idcache[lang];
-		}else{
-			var xfile = config.dispDir + "/concept/" + lang + ".x";
-			if(!fs.existsSync(xfile))
-				throw "no lang: "+lang;
-			var langast = self.parse(fs.readFileSync(xfile).toString());
-			langconfig = idcache[lang] = self.eval(self.toes(langast), {
-				lang: "xinternal"
-			});
-			var tmpdeps = langconfig.deps;
-			langconfig.deps = {};
-			if(typeof tmpdeps == "string")
-				langconfig.deps[tmpdeps] = 1;
-			else if(libObject.isArray(tmpdeps)) 
-				for(var i in tmpdeps)
-					langconfig.deps[tmpdeps[i]] = 1;
-			else
-				langconfig.deps = tmpdeps;
-		}
-	}
-
-	var ttfile = config.dispDir + "/concept/" + id + "/" + lang + ".tt";
-	if(fs.existsSync(ttfile)){
-		var str = tmpl.render({
-			file: ttfile,
-			extend: {
-				eval: function(ast){
-					return self.eval(ast, scope);
+	var langconfig = self.getconfig(lang);
+	if(!superflag){
+		var ttfile = config.dispDir + "/concept/" + id + "/" + lang + ".tt";
+		if(fs.existsSync(ttfile)){
+			var writefilename = "";
+			var writeconfig = {};
+			var str = tmpl.render({
+				file: ttfile,
+				extend: {
+					eval: function(ast){
+						return self.eval(ast, scope);
+					},
+					writefile: function(filename, config){
+						writefilename = filename;
+						if(typeof config == "string")
+							writeconfig[config] = 1;
+						else if(config)
+							writeconfig = config;
+					},
+					super: function(){
+						return self.gen(ast, lang, scope, 1);
+					}
 				}
+			}, {
+				argv: ast[1],
+				scope: scope
+			});
+
+			if(writefilename){
+				var tmprtn = {};
+				writeconfig.content = str;
+				tmprtn[writefilename] = writeconfig;
+				return self.cmd(['writefile', tmprtn]);
+			}else{
+				return str;
 			}
-		}, {
-			argv: ast[1],
-			scope: scope
-		});
-		return str;
+		}
 	}
 	if(langconfig.deps)
 		for(var key in langconfig.deps){
-			console.log(key);
 			rtn = self.gen(ast, key, scope);
 			if(rtn !== undefined) return rtn;
 		}

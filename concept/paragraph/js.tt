@@ -1,0 +1,2 @@
+^^$.writefile("index.js")$$
+^^=$.super()$$
