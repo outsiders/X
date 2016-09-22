@@ -1,0 +1,3 @@
+function(^^=Object.keys(argv.arguments).join(", ")$$){
+^^=~argv.content$$
+}

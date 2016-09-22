@@ -38,8 +38,10 @@ var grammar = {
 			["{sp}\\-{sp}", "return '-'"],
 			["{sp}\\*{sp}", "return '*'"],
 			["{sp}\\/{sp}", "return '/'"],
+      ["{sp}\\?{sp}", "return '?'"],
       ["{sp},{sp}", "return ','"],
       ["{sp};{sp}", "return ';'"]
+
     ]
   },
   "tokens": "STRING NUMBER PROPERTY ID . { } [ ] ( ) & = + - * / , :",
@@ -63,7 +65,7 @@ var grammar = {
 		"Paragraph": [[ "Sentence",  "$$ = ['paragraph', [$1]];"],
 									[ "Paragraph ; Sentence", "$$ = $1; $1[1].push($3);"],
 									[ "Paragraph ;", "$$ = $1;"],
-									[ "{ Paragraph };", "$$ = ['scope', $1];"]
+									[ "{ Paragraph };", "$$ = ['paragraph', $1];"]
 								 ],
 		"Sentence": [["DoSentence", "$$ = $1;"],
 								 ["AssignSentence", "$$ = $1;"]
@@ -71,8 +73,8 @@ var grammar = {
 		"DoSentence": [["Unit", "$$ = ['do', [$1]];"],
 									 ["DoSentence Unit", "$$ = $1; $1[1].push($2)"]
 									],
-		"AssignSentence": [["Assignable = Sentence", "$$ = ['assign', [$1, $3]];"],
-											 ["Array = Sentence", "$$ = ['assign', [$1, $3]];"]
+		"AssignSentence": [["Assignable = DoSentence", "$$ = ['assign', [$1, $3[1]]];"],
+											 ["Array = DoSentence", "$$ = ['assign', [$1, $3[1]]];"]
 											],
 		"Unit": [["BasicUnit", "$$= $1"],
 						 ["PropertyUnit", "$$ = $1"],
@@ -99,9 +101,15 @@ var grammar = {
 							[" Array , BasicUnit",  "$$ = $1; $1[1].push($3)"]
 						 ],
 		"Call": [["& BasicUnit ", "$$ = $2;"]],
-		"Arguments": [["@ Id", "$$ = ['arguments', [$2]]"],
-									["Arguments , Id", "$$ = $1, $1[1].push($3)"]
+		"Arguments": [["@ ArgumentsArray", "$$ = ['arguments', $2]"]
 								 ],
+		"ArgumentsElement": [["Id", "$$ = {};$$ = [$1, {type:'auto'}]"],
+												 ["Property Id", "$$ = [$1, {type: $2}]"],
+												 ["Property Id ? BasicUnit", "$$ = [$1, {type: $2, default: $4}]"]
+												],
+		"ArgumentsArray": [["ArgumentsElement", "$$={}; $$[$1[0]] = $1[1];"],
+											 ["ArgumentsArray , ArgumentsElement", "$$=$1; $$[$3[0]] = $3[1]"]
+											],
 		"Operation": [[ "( Operation )", "$$ = $2"],
 									[ "BasicUnit + BasicUnit", "$$ = ['add', [$1, $3]]"]
 								 ]

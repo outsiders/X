@@ -33,9 +33,9 @@ function X(config){
 	self.keyCounts = {};//for default instance
 	self.deps = {};
 	if(!config.dispDir) config.dispDir = path.resolve(__dirname + "/..");
-	if(!config.projectDir) config.projectDir = ".";
-	if(!config.targetDir) config.targetDir = ".";
-	if(!config.baseDir) config.baseDir = config.projectDir;
+//	if(!config.projectDir) config.projectDir = ".";
+//	if(!config.targetDir) config.targetDir = ".";
+//	if(!config.baseDir) config.baseDir = config.projectDir;
 	if(!config.deps) config.deps = {};
 	
 	self.global = {
@@ -62,32 +62,39 @@ function X(config){
 			return param;
 		},
 		paragraph: function(param, scope){
+			var newscope = {
+				parentScope: scope
+			}
 			var rtn = [];
 			for(var i in param){
-				var e = self.toes(param[i], scope);
+				var e = self.toes(param[i], newscope);
 				rtn = rtn.concat(e);
 			}
 			return ['paragraph', rtn];
 		},
-		do: function(param, scope){
+		do: function(param, scope, isassign){
 // core
-//			console.log("!do")
-//			console.log(JSON.stringify(param));
-			var result = self.do(param, scope);
-//			console.log(result);
+
+			var result = self.do(param, scope, isassign);
+
 			return self.toes(result, scope);
 		},
 		scope: function(param, scope){
 			var newscope = {
 				parentScope: scope
 			}
-			return ['scope', self.toes(param, newscope)];
+			return ['paragraph', self.toes(param, newscope)];
 		},
 		assign: function(param, scope){
 			var rtn = [];
-			var tobeassigned = self.toes(param[1], scope)[0];
+			var tobeassigned = self.do(param[1][1], scope, true)[0];
+
 			if(param[0][0] == 'id' && !scope[param[0][1]]){
-				scope[param[0][1]] = tobeassigned[0];
+				scope[param[0][1]] = {type: tobeassigned[0]};
+/*				if(scope.arguments){
+					 scope[param[0][1]].arugments = scope.arguments;
+					delete scope.arugments;
+				}*/
 				rtn.push(['newvar', param[0][1]]);
 			}
 			rtn.push(['assign', [param[0], tobeassigned]]);
@@ -102,42 +109,80 @@ function X(config){
 X.prototype.exec = function(main, argv){
 	var self = this;
 	var config = self.global.config;
+	if(!config.targetDir) config.targetDir = path.dirname(main);
 	self.global.argv = argv || [];
 	var ast = self.parse(fs.readFileSync(main).toString());
 	var es = self.toes(ast, self.scope);
-	console.log("!es");
-	console.log(es);
+//	console.log("!es");
+//	console.log(JSON.stringify(es, undefined, 2));
 	if(!self.scope.lang)
 		self.scope.lang = "nodejs"
 	var result = self.eval(es, self.scope);
 	
-	console.log("!result");
+//	console.log("!result");
 	console.log(result);
 
 	self.writefile();
 }
-X.prototype.gettype = function(){
+X.prototype.gettype = function(param, scope){
+	if(scope[param]) return {type: scope[param]};
+	var config = self.getconfig(param);
+	if(!config) return {type: "newvar"};
+	if(!config.type) config.type = "auto";
+	return config;
 }
-X.prototype.do = function(arr, scope){
-	self = this;
-	var propcount = 0;
+X.prototype.do = function(arr, scope, isassign){
+	var self = this;
 	var hash= {};
 	var mainfunc = "";
+	var mainconfig;
+	var propertyc = 0;
 	for(var i in arr){
 		var form = arr[i][0];
 		var param = arr[i][1];
 		if(form == 'property'){
-			hash[param[0]] = param[1];
-			propcount ++;
-		}else if(form == 'id'){
-			var type = self.gettype(param);
-			if(type == "function")
+			hash[param[0]] = self.toes(param[1]);
+			propertyc ++;
+		}else if(form == 'arguments'){
+			mainfunc = "function";
+			hash.arguments = param;
+			hash.content = ['content', []];
+			break;
+			
+/*
+			var config = self.gettype(form, scope);
+			if(config.type == "function" || config.type == "class"){
 				mainfunc = param;
-		}		
+				mainconfig = config;
+				break;
+			}
+*/
+		}
 	}
-	if(propcount == arr.length)
-		return [['hash', hash]];
-	return [arr[arr.length - 1]];
+	if(mainfunc == "function"){
+		var ci = 0;
+		for(var i in arr){
+			var form = arr[i][0];
+			var param = arr[i][1];
+			if(form != 'property' && form != "arguments"){
+				hash.content[1].push(self.toes(arr[i]));
+				ci++;
+			}
+		}
+		if(hash.content[1][ci-1][0] != "return")
+			hash.content[1][ci-1] = ['return', hash.content[1][ci-1]];
+	}
+
+	if(mainfunc)
+		return [[mainfunc, hash]];
+	if(propertyc >0)
+		return [["hash", hash]];
+
+	if(arr.length > 1){
+		console.log(arr);
+		throw "wrong syntax";
+	}
+	return arr;
 }
 X.prototype.compile= function(ast, yy){
 	self = this;
@@ -177,8 +222,7 @@ X.prototype.regfile = function(filename, config){
 	}
 }
 X.prototype.cmd = function(ast){
-//	console.log('!cmd');
-//	console.log(ast);
+
 	var self = this;
 	switch(ast[0]){
 	case "writefile":
@@ -218,16 +262,13 @@ X.prototype.toes = function(ast, scope){
 	var self = this;
 	var rtn;
 	if(!ast) return;
-//	console.log("!toes");
-//	console.log(ast);
 	var id = ast[0];
 	if(self.internal[id]){
 		rtn = self.internal[id](ast[1], scope);
 	}else{
 		rtn = ast;
 	}
-//	console.log("!toes return");
-//	console.log(rtn);
+
 	return rtn;
 	
 }
@@ -236,15 +277,18 @@ X.prototype.eval = function(ast, scope){
 	var self = this;
 	var rtn;
 	if(!ast) return;
-//	console.log("!eval");
-//	console.log(ast);
-//	console.log(scope);
+
 	var id = ast[0];
 	var config = self.global.config;
 	//this lang
-	if(scope.lang)
-		 return self.gen(ast, scope.lang, scope);
-//	if(rtn !== undefined) return rtn;
+	if(scope.lang){
+		 rtn = self.gen(ast, scope.lang, scope);
+		if(rtn === undefined) {
+			console.log(ast);
+			throw "no defined "+ id + " " + scope.lang;
+		}
+		return rtn;
+	}
 	//parent lang
 	var pscope = scope;
 	while(pscope.parent){
@@ -254,7 +298,6 @@ X.prototype.eval = function(ast, scope){
 	}
 /*
 	//x
-	console.log("using x " + id);
 	
 	if(idcache[id])
 		return self.evalidcache[id], scope);
@@ -302,11 +345,11 @@ X.prototype.getconfig = function(lang){
 	return langconfig;
 }
 X.prototype.gen = function(ast, lang, scope, superflag){
-//	console.log("!gen " + lang);
-//	console.log(ast);
+
 	var self = this;
 	var config = self.global.config;
 	var id = ast[0];
+
 	var rtn;
 	var langconfig = self.getconfig(lang);
 	if(!superflag){
@@ -346,9 +389,11 @@ X.prototype.gen = function(ast, lang, scope, superflag){
 			}
 		}
 	}
-	if(langconfig.deps)
+	if(langconfig.deps){
 		for(var key in langconfig.deps){
 			rtn = self.gen(ast, key, scope);
 			if(rtn !== undefined) return rtn;
 		}
+	}
+
 }
