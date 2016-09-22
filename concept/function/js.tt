@@ -1,3 +1,3 @@
 function(^^=Object.keys(argv.arguments).join(", ")$$){
-^^=~argv.content$$
+^^=~argv.content, {newscope:1}$$
 }

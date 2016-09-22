@@ -42,7 +42,9 @@ function X(config){
 		config: config,
 		main: {}
 	};
-	self.scope = {};
+	self.scope = {
+		indent: 0
+	};
 	self.src = {};
 	self.filelist = {};
 	self.filecount = 0;
@@ -62,12 +64,9 @@ function X(config){
 			return param;
 		},
 		paragraph: function(param, scope){
-			var newscope = {
-				parentScope: scope
-			}
 			var rtn = [];
 			for(var i in param){
-				var e = self.toes(param[i], newscope);
+				var e = self.toes(param[i], scope);
 				rtn = rtn.concat(e);
 			}
 			return ['paragraph', rtn];
@@ -79,16 +78,9 @@ function X(config){
 
 			return self.toes(result, scope);
 		},
-		scope: function(param, scope){
-			var newscope = {
-				parentScope: scope
-			}
-			return ['paragraph', self.toes(param, newscope)];
-		},
 		assign: function(param, scope){
 			var rtn = [];
 			var tobeassigned = self.do(param[1][1], scope, true)[0];
-
 			if(param[0][0] == 'id' && !scope[param[0][1]]){
 				scope[param[0][1]] = {type: tobeassigned[0]};
 /*				if(scope.arguments){
@@ -125,7 +117,8 @@ X.prototype.exec = function(main, argv){
 	self.writefile();
 }
 X.prototype.gettype = function(param, scope){
-	if(scope[param]) return {type: scope[param]};
+	var self = this;
+	if(scope[param]) return scope[param];
 	var config = self.getconfig(param);
 	if(!config) return {type: "newvar"};
 	if(!config.type) config.type = "auto";
@@ -136,7 +129,9 @@ X.prototype.do = function(arr, scope, isassign){
 	var hash= {};
 	var mainfunc = "";
 	var mainconfig;
+	var maini = 0;
 	var propertyc = 0;
+//get mainfunc
 	for(var i in arr){
 		var form = arr[i][0];
 		var param = arr[i][1];
@@ -145,20 +140,23 @@ X.prototype.do = function(arr, scope, isassign){
 			propertyc ++;
 		}else if(form == 'arguments'){
 			mainfunc = "function";
+			maini = i;
 			hash.arguments = param;
 			hash.content = ['content', []];
 			break;
-			
-/*
-			var config = self.gettype(form, scope);
-			if(config.type == "function" || config.type == "class"){
-				mainfunc = param;
+		}else if(form == 'id'){
+			var config = self.gettype(param, scope);
+			if(config.type == "function"){
+				mainfunc = "call";
+				hash.id = param;
+				hash.param = [];
 				mainconfig = config;
+				maini = i;
 				break;
 			}
-*/
 		}
 	}
+//do according to mainfunc
 	if(mainfunc == "function"){
 		var ci = 0;
 		for(var i in arr){
@@ -171,6 +169,18 @@ X.prototype.do = function(arr, scope, isassign){
 		}
 		if(hash.content[1][ci-1][0] != "return")
 			hash.content[1][ci-1] = ['return', hash.content[1][ci-1]];
+	}else if(mainfunc == "call"){
+		for(var i in arr){
+			var form = arr[i][0];
+			var param = arr[i][1];
+			if(i != maini){
+				if(form == "array"){
+					hash.param = param;
+					break;
+				}
+				hash.param.push(arr[i]);
+			}
+		}
 	}
 
 	if(mainfunc)
@@ -291,9 +301,9 @@ X.prototype.eval = function(ast, scope){
 	}
 	//parent lang
 	var pscope = scope;
-	while(pscope.parent){
-		pscope = pscope.parent;
-		if(pscope.lag)
+	while(pscope.parentScope){
+		pscope = pscope.parentScope;
+		if(pscope.lang)
 			return self.gen(ast, pscope.lang, scope);
 	}
 /*
@@ -360,8 +370,26 @@ X.prototype.gen = function(ast, lang, scope, superflag){
 			var str = tmpl.render({
 				file: ttfile,
 				extend: {
-					eval: function(ast){
-						return self.eval(ast, scope);
+					eval: function(ast, config){
+						var nextscope;
+						if(!config) config = {};
+						if(config.newscope){
+							nextscope = {
+								parentScope: scope,
+								indent: scope.indent + 1
+							};							
+						}else{
+							nextscope = scope;
+						}
+						if(typeof ast[0] != "string"){
+							var str = "";
+							for(var i in ast){
+								if(i != 0) str += (config.sep || ", ");
+								str += self.eval(ast[i], nextscope);	
+							}
+							return str;
+						}							
+						return self.eval(ast, nextscope);
 					},
 					writefile: function(filename, config){
 						writefilename = filename;

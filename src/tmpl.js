@@ -75,6 +75,7 @@ function render(config, data){
 	var local = data;
 	var p=[];
 	var win, wout;
+	var tab = "\t";
 	var evalstr = "p.push('";
 	var originstr = config.str.replace(/\r/g,"");
 	with(data){
@@ -115,11 +116,7 @@ function render(config, data){
 					}
 */
 				if((ms=win.match(/^=~(.*)$/))){
-					if(ms[1].match(/:/)){
-						win = win.replace(/~(.+)/,"$.eval({$1})");
-					}else{
-						win = win.replace(/~(.+)/,"$.eval($1)");
-					}
+					win = win.replace(/~(.+)/,"$.eval($1)");
 				}
 				evalstr += (win.replace(/^=(.+)/, "',$1,'") + wout);
 			}

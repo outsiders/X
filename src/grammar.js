@@ -65,7 +65,7 @@ var grammar = {
 		"Paragraph": [[ "Sentence",  "$$ = ['paragraph', [$1]];"],
 									[ "Paragraph ; Sentence", "$$ = $1; $1[1].push($3);"],
 									[ "Paragraph ;", "$$ = $1;"],
-									[ "{ Paragraph };", "$$ = ['paragraph', $1];"]
+									[ "{ Paragraph };", "$$ = ['content', $1];"]
 								 ],
 		"Sentence": [["DoSentence", "$$ = $1;"],
 								 ["AssignSentence", "$$ = $1;"]
