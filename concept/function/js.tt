@@ -1,3 +1,8 @@
 function(^^=Object.keys(argv.arguments).join(", ")$$){
-^^=~argv.content, {newscope:1}$$
+^^for(var key in argv.arguments){
+ var cfg = argv.arguments[key];
+ if(cfg.default){$$
+^^=~['content', ['default', [key, cfg.default]]], {newscope:1}$$
+^^}}$$
+^^=~['content', argv.content], {newscope:1}$$
 }

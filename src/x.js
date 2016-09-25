@@ -13,12 +13,6 @@ function:
 
  definition:
 
- 	argv: [],
- 	lang: [],
-
- invoke:
- 	with array -> argv
- 	with hash -> as local scope
 
  scope:
  	 
@@ -71,16 +65,17 @@ function X(config){
 			}
 			return ['paragraph', rtn];
 		},
-		do: function(param, scope, isassign){
+		do: function(param, scope){
 // core
-
-			var result = self.do(param, scope, isassign);
-
+			console.log("!do");
+			console.log(param);
+			var result = self.do(param, scope);
+			console.log(result);
 			return self.toes(result, scope);
 		},
 		assign: function(param, scope){
 			var rtn = [];
-			var tobeassigned = self.do(param[1][1], scope, true)[0];
+			var tobeassigned = self.do(param[1], scope, true)[0];
 			if(param[0][0] == 'id' && !scope[param[0][1]]){
 				scope[param[0][1]] = {type: tobeassigned[0]};
 /*				if(scope.arguments){
@@ -112,7 +107,7 @@ X.prototype.exec = function(main, argv){
 	var result = self.eval(es, self.scope);
 	
 //	console.log("!result");
-	console.log(result);
+//	console.log(result);
 
 	self.writefile();
 }
@@ -124,7 +119,7 @@ X.prototype.gettype = function(param, scope){
 	if(!config.type) config.type = "auto";
 	return config;
 }
-X.prototype.do = function(arr, scope, isassign){
+X.prototype.do = function(arr, scope){
 	var self = this;
 	var hash= {};
 	var mainfunc = "";
@@ -142,10 +137,11 @@ X.prototype.do = function(arr, scope, isassign){
 			mainfunc = "function";
 			maini = i;
 			hash.arguments = param;
-			hash.content = ['content', []];
+			hash.content = [];
 			break;
 		}else if(form == 'id'){
 			var config = self.gettype(param, scope);
+
 			if(config.type == "function"){
 				mainfunc = "call";
 				hash.id = param;
@@ -163,12 +159,12 @@ X.prototype.do = function(arr, scope, isassign){
 			var form = arr[i][0];
 			var param = arr[i][1];
 			if(form != 'property' && form != "arguments"){
-				hash.content[1].push(self.toes(arr[i]));
+				hash.content.push(self.toes(arr[i]));
 				ci++;
 			}
 		}
-		if(hash.content[1][ci-1][0] != "return")
-			hash.content[1][ci-1] = ['return', hash.content[1][ci-1]];
+		if(hash.content[ci-1][0] != "return")
+			hash.content[ci-1] = ['return', hash.content[ci-1]];
 	}else if(mainfunc == "call"){
 		for(var i in arr){
 			var form = arr[i][0];
