@@ -75,9 +75,12 @@ function X(config){
 		},
 		assign: function(param, scope){
 			var rtn = [];
-			var tobeassigned = self.do(param[1], scope, true)[0];
+			var tobeassigned = self.do(param[1], scope, {assign: 1})[0];
 			if(param[0][0] == 'id' && !scope[param[0][1]]){
-				scope[param[0][1]] = {type: tobeassigned[0]};
+				scope[param[0][1]] = {
+					type: tobeassigned[0],
+					local: 1
+				};
 /*				if(scope.arguments){
 					 scope[param[0][1]].arugments = scope.arguments;
 					delete scope.arugments;
@@ -119,13 +122,14 @@ X.prototype.gettype = function(param, scope){
 	if(!config.type) config.type = "auto";
 	return config;
 }
-X.prototype.do = function(arr, scope){
+X.prototype.do = function(arr, scope, doconfig){
 	var self = this;
 	var hash= {};
 	var mainfunc = "";
 	var mainconfig;
 	var maini = 0;
 	var propertyc = 0;
+	if(!doconfig) doconfig= {};
 //get mainfunc
 	for(var i in arr){
 		var form = arr[i][0];
@@ -148,8 +152,8 @@ X.prototype.do = function(arr, scope){
 				hash.param = [];
 				mainconfig = config;
 				maini = i;
-				break;
-			}
+			}else	if(!config.local)
+				arr[i] = self.toes([param]);
 		}
 	}
 //do according to mainfunc
@@ -177,6 +181,10 @@ X.prototype.do = function(arr, scope){
 				hash.param.push(arr[i]);
 			}
 		}
+		if(!mainconfig.local){
+			mainfunc = hash.id;
+			hash = hash.param[0];
+		}
 	}
 
 	if(mainfunc)
@@ -188,6 +196,8 @@ X.prototype.do = function(arr, scope){
 		console.log(arr);
 		throw "wrong syntax";
 	}
+	if(!doconfig.assign)
+		return [['print', arr[0]]];
 	return arr;
 }
 X.prototype.compile= function(ast, yy){
