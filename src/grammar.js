@@ -39,12 +39,14 @@ var grammar = {
 			["{sp}\\*{sp}", "return '*'"],
 			["{sp}\\/{sp}", "return '/'"],
       ["{sp}\\?{sp}", "return '?'"],
+      ["{sp}\\~{sp}", "return '~'"],
+      ["{sp}\\`{sp}", "return '`'"],
       ["{sp},{sp}", "return ','"],
       ["{sp};{sp}", "return ';'"]
 
     ]
   },
-  "tokens": "STRING NUMBER PROPERTY ID . { } [ ] ( ) & = + - * / , :",
+  "tokens": "STRING NUMBER PROPERTY ID . { } [ ] ( ) & = + - * / , : ~ ? `",
 	"operators": [
 		["left", ","],
 		["left", "."],
@@ -65,7 +67,7 @@ var grammar = {
 		"Paragraph": [[ "Sentence",  "$$ = ['paragraph', [$1]];"],
 									[ "Paragraph ; Sentence", "$$ = $1; $1[1].push($3);"],
 									[ "Paragraph ;", "$$ = $1;"],
-									[ "{ Paragraph };", "$$ = ['content', $1];"]
+									[ "{ Paragraph }", "$$ = $2;"]
 								 ],
 		"Sentence": [["DoSentence", "$$ = $1;"],
 								 ["AssignSentence", "$$ = $1;"]
@@ -85,23 +87,25 @@ var grammar = {
 		"BasicUnit": [["Value", "$$ = $1"],
 									["Assignable", "$$ = $1"],
 									["Call", "$$ = [$1]"],
-									["BracketUnit", "$$ = $1"]
+									["ParenthesetUnit", "$$ = $1"],
+									[ "` Unit `", "var tmp = {};tmp[$2[0]]=$2[1];$$ = ['raw', tmp];"]
 								 ],
 		"PropertyUnit": [["Property BasicUnit", "$$ = ['property', [$1, $2]]"]],
-		"BracketUnit": [["( BasicUnit )", "$$ = $2"]],
+		"ParentheseUnit": [["( BasicUnit )", "$$ = $2"]],
 		"Value": [["Null", "$$ = $1"], 
 							["String", "$$ = $1"],
 							["Number", "$$ = $1"]
 						 ],		
 		"Assignable": [["Id", "$$ = ['id', $1]"], 
-									 ["BracketUnit . Id", "$$ = ['get', [$1, $3]]"],
-									 ["BracketUnit [ BasicUnit ]", "$$ = ['get', [$1, $3]]"]
+									 ["ParentheseUnit . Id", "$$ = ['get', [$1, $3]]"],
+									 ["ParentheseUnit [ BasicUnit ]", "$$ = ['get', [$1, $3]]"]
 									],
 		"Array": [[" BasicUnit , BasicUnit", "$$ = ['array', [$1, $3]]"],
 							[" Array , BasicUnit",  "$$ = $1; $1[1].push($3)"]
 						 ],
-		"Call": [["& BasicUnit ", "$$ = $2;"]],
-		"Arguments": [["@ ArgumentsArray", "$$ = ['arguments', $2]"]
+		"Call": [["& BasicUnit ", "$$ = ['do', $2];"]],
+		"Arguments": [["@ ArgumentsArray", "$$ = ['arguments', $2]"],
+									["~ Id", "$$ = ['returnclaim', $2]"]
 								 ],
 		"ArgumentsElement": [["Id", "$$ = [$1, {type:'auto'}]"],
 												 ["Property Id", "$$ = [$1, {type: $2}]"],

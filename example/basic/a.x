@@ -6,4 +6,6 @@ b 1 2;
 c = @x?1 x+1;
 c;
 PI;
-print PI
+print PI;
+d = { @a };
+
