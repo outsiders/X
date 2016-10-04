@@ -1,1 +1,2 @@
-deps: "x"
+@_
+deps: "clike"

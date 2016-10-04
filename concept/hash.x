@@ -1,1 +1,2 @@
-description: "hash"
+@_
+deps: entity

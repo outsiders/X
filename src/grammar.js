@@ -34,6 +34,7 @@ var grammar = {
       ["{sp}\\|{sp}", "return '|'"],
       ["{sp}\\@{sp}", "return '@'"],
 			["{sp}={sp}", "return '='"],
+			["{sp}\\_{sp}", "return '_'"],
 			["{sp}\\+{sp}", "return '+'"],
 			["{sp}\\-{sp}", "return '-'"],
 			["{sp}\\*{sp}", "return '*'"],
@@ -46,7 +47,7 @@ var grammar = {
 
     ]
   },
-  "tokens": "STRING NUMBER PROPERTY ID . { } [ ] ( ) & = + - * / , : ~ ? `",
+  "tokens": "STRING NUMBER PROPERTY ID . { } [ ] ( ) & = + - * / , : ~ ? ` _",
 	"operators": [
 		["left", ","],
 		["left", "."],
@@ -58,25 +59,25 @@ var grammar = {
 	],
   "start": "Artical",
   "bnf": {
-		"Artical": [["Paragraph", "return $$ = $1"]],
+		"Artical": [["Paragraph", "return $$ = ['_main', $1]"]],
 		"Id": [[ "ID", "$$ = yytext"]],
 		"Property": [[ "PROPERTY", "$$ = yytext"]],
-    "Null": [[ "_", "$$ = {type:'null'}" ]],
-    "String": [[ "STRING", "$$ = ['string', yytext]" ]],
-    "Number": [[ "NUMBER", "$$ = ['number', Number(yytext)]" ]],
-		"Paragraph": [[ "Sentence",  "$$ = ['paragraph', [$1]];"],
-									[ "Paragraph ; Sentence", "$$ = $1; $1[1].push($3);"],
+    "Null": [[ "_", "$$ = ['_null']" ]],
+    "String": [[ "STRING", "$$ = ['_string', yytext]" ]],
+    "Number": [[ "NUMBER", "$$ = ['_number', Number(yytext)]" ]],
+		"Paragraph": [[ "Sentence",  "$$ = [$1];"],
+									[ "Paragraph ; Sentence", "$$ = $1; $1.push($3);"],
 									[ "Paragraph ;", "$$ = $1;"],
 									[ "{ Paragraph }", "$$ = $2;"]
 								 ],
-		"Sentence": [["DoSentence", "$$ = $1;"],
+		"Sentence": [["BasicSentence", "$$ = $1;"],
 								 ["AssignSentence", "$$ = $1;"]
 								],
-		"DoSentence": [["Unit", "$$ = ['do', [$1]];"],
-									 ["DoSentence Unit", "$$ = $1; $1[1].push($2)"]
-									],
-		"AssignSentence": [["Assignable = DoSentence", "$$ = ['assign', [$1, $3[1]]];"],
-											 ["Array = DoSentence", "$$ = ['assign', [$1, $3[1]]];"]
+		"BasicSentence": [["Unit", "$$ = ['_sentence', [$1]];"],
+											["BasicSentence Unit", "$$ = $1; $1[1].push($2)"]
+										 ],
+		"AssignSentence": [["Assignable = BasicSentence", "$$ = ['_assign', [$1, $3]];"],
+											 ["Array = BasicSentence", "$$ = ['_assign', [$1, $3]];"]
 											],
 		"Unit": [["BasicUnit", "$$= $1"],
 						 ["PropertyUnit", "$$ = $1"],
@@ -88,27 +89,29 @@ var grammar = {
 									["Assignable", "$$ = $1"],
 									["Call", "$$ = [$1]"],
 									["ParenthesetUnit", "$$ = $1"],
-									[ "` Unit `", "var tmp = {};tmp[$2[0]]=$2[1];$$ = ['raw', tmp];"]
+									[ "` Unit `", "var tmp = {};tmp[$2[0]]=$2[1];$$ = ['_raw', tmp];"]
 								 ],
-		"PropertyUnit": [["Property BasicUnit", "$$ = ['property', [$1, $2]]"]],
+		"PropertyUnit": [["Property BasicUnit", "$$ = ['_property', [$1, $2]]"]],
 		"ParentheseUnit": [["( BasicUnit )", "$$ = $2"]],
 		"Value": [["Null", "$$ = $1"], 
 							["String", "$$ = $1"],
 							["Number", "$$ = $1"]
 						 ],		
-		"Assignable": [["Id", "$$ = ['id', $1]"], 
-									 ["ParentheseUnit . Id", "$$ = ['get', [$1, $3]]"],
-									 ["ParentheseUnit [ BasicUnit ]", "$$ = ['get', [$1, $3]]"]
+		"Assignable": [["Id", "$$ = ['_id', $1]"], 
+									 ["ParentheseUnit . Id", "$$ = ['_get', [$1, $3]]"],
+									 ["ParentheseUnit [ BasicUnit ]", "$$ = ['_get', [$1, $3]]"]
 									],
-		"Array": [[" BasicUnit , BasicUnit", "$$ = ['array', [$1, $3]]"],
+		"Array": [[" BasicUnit , BasicUnit", "$$ = ['_array', [$1, $3]]"],
 							[" Array , BasicUnit",  "$$ = $1; $1[1].push($3)"]
 						 ],
-		"Call": [["& BasicUnit ", "$$ = ['do', $2];"]],
-		"Arguments": [["@ ArgumentsArray", "$$ = ['arguments', $2]"],
-									["~ Id", "$$ = ['returnclaim', $2]"]
+		"Call": [["& BasicUnit ", "$$ = ['_call', $2];"]],
+		"Arguments": [["@ ArgumentsArray", "$$ = ['_arguments', $2]"],
+									["@ Null", "$$ = ['_arguments', {}]"],
+									["~ Id", "$$ = ['_return', $2]"]
 								 ],
 		"ArgumentsElement": [["Id", "$$ = [$1, {type:'auto'}]"],
 												 ["Property Id", "$$ = [$1, {type: $2}]"],
+												 ["Property *", "$$ = [$1, {etc: 1}]"],
 												 ["Id ? BasicUnit", "$$ = [$1, {type: 'auto', default: $3}]"],
 												 ["Property Id ? BasicUnit", "$$ = [$1, {type: $2, default: $4}]"]
 												],
@@ -116,7 +119,7 @@ var grammar = {
 											 ["ArgumentsArray , ArgumentsElement", "$$=$1; $$[$3[0]] = $3[1]"]
 											],
 		"Operation": [[ "( Operation )", "$$ = $2"],
-									[ "BasicUnit + BasicUnit", "$$ = ['add', [$1, $3]]"]
+									[ "BasicUnit + BasicUnit", "$$ = ['_add', [$1, $3]]"]
 								 ]
   }
 };
