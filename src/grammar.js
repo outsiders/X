@@ -109,10 +109,10 @@ var grammar = {
 									["@ Null", "$$ = ['_arguments', {}]"],
 									["~ Id", "$$ = ['_return', $2]"]
 								 ],
-		"ArgumentsElement": [["Id", "$$ = [$1, {type:'auto'}]"],
+		"ArgumentsElement": [["Id", "$$ = [$1, {}]"],
 												 ["Property Id", "$$ = [$1, {type: $2}]"],
 												 ["Property *", "$$ = [$1, {etc: 1}]"],
-												 ["Id ? BasicUnit", "$$ = [$1, {type: 'auto', default: $3}]"],
+												 ["Id ? BasicUnit", "$$ = [$1, {default: $3}]"],
 												 ["Property Id ? BasicUnit", "$$ = [$1, {type: $2, default: $4}]"]
 												],
 		"ArgumentsArray": [["ArgumentsElement", "$$={}; $$[$1[0]] = $1[1];"],

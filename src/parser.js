@@ -165,7 +165,7 @@ case 40:
 this.$ = ['_return', $$[$0]]
 break;
 case 41:
-this.$ = [$$[$0], {type:'auto'}]
+this.$ = [$$[$0], {}]
 break;
 case 42:
 this.$ = [$$[$0-1], {type: $$[$0]}]
@@ -174,7 +174,7 @@ case 43:
 this.$ = [$$[$0-1], {etc: 1}]
 break;
 case 44:
-this.$ = [$$[$0-2], {type: 'auto', default: $$[$0]}]
+this.$ = [$$[$0-2], {default: $$[$0]}]
 break;
 case 45:
 this.$ = [$$[$0-3], {type: $$[$0-2], default: $$[$0]}]

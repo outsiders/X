@@ -45,7 +45,7 @@ function X(config){
 	self.filecount = 0;
 	self.parser = parser;
 	self.parser.parser.yy= {
-// not used
+// not use
 		xe: function(arr){
 			return self.xe(arr);
 		}
@@ -96,8 +96,14 @@ X.prototype.getmain = function(arr, scope, doconfig){
 		if(e[0] == '_arguments'){ 
 			//if has arguments, it is a function definition
 			main.type = "function";
+			for(var key in e[1]){
+				if(e[1][key].default) e[1][key].default = self.normalize(e[1][key].default, scope);
+			}
 			main.arguments = e[1];
 			main.columnindex = i;
+			main.config = {
+				content: {etc: 1}
+			}
 			return main;
 		} 
 		if(e[0] == '_id'){
@@ -108,8 +114,10 @@ X.prototype.getmain = function(arr, scope, doconfig){
 			if(iddef.type == "function"){
 				main.type = e[1];
 				main.columnindex = i;
-				main.arguments = iddef.arguments;
-				if(tmpconfig.return) main.return = iddef.return;
+				if(iddef.content){
+					if(iddef.content.return) main.return = iddef.content.return;
+					main.config = iddef.content.arguments;
+				}
 				return main;
 			}
 		}
@@ -136,7 +144,7 @@ X.prototype.getmain = function(arr, scope, doconfig){
 		}
 	}
 	var tmpconfig = self.getid(main.type, scope);
-	main.arguments = tmpconfig.arguments;
+	main.config = tmpconfig.arguments;
 	if(tmpconfig.return) main.return = tmpconfig.return;
 	return main;
 }
@@ -153,8 +161,11 @@ X.prototype.sentence = function(arr, scope, doconfig){
 		var ne = self.normalize(e, scope, {param: param});
 		if(ne){
 			var used = 0;
-			for(var key in main.arguments){
-				var mc = main.arguments[key];
+			console.log("!");
+			console.log(main);
+			console.log(ne);
+			for(var key in main.config){
+				var mc = main.config[key];
 				if(mc.etc){
 					if(!param[key]) param[key] = [];
 					param[key].push(ne);
@@ -171,14 +182,16 @@ X.prototype.sentence = function(arr, scope, doconfig){
 				}
 			}
 			if(!used){
-				log.e(arr);
-				log.e(ne);
+				log.i(arr);
+				log.i(ne);
+				log.i(main);
 				throw "not used ";
 			}
+			console.log(param);
 		}
 	}
-	for(var key in main.arguments){
-		if(main.arguments[key].required && !param[key]) 
+	for(var key in main.config){
+		if(main.config[key].required && !param[key]) 
 			throw main.key +" require "+ key;
 	}
 
@@ -238,6 +251,8 @@ X.prototype.normalize = function(ast, scope, doconfig){
 		throw "wrong id to normalize "+id;
 	var options = ast[1];
 	switch(id){
+	case "_add": 
+		return ['add', self.normalize(options, scope)];
 	case "_number": 
 		return ['number', options];
 	case "_string": 
@@ -257,6 +272,7 @@ X.prototype.normalize = function(ast, scope, doconfig){
 		if(varop[0] == 'id' && !scope[varop[1]]){
 			scope[varop[1]] = {
 				type: tobeassigned[0],
+				content: tobeassigned[1],
 				local: 1
 			};
 			rtn.push(['newvar', varop[1]]);
@@ -289,8 +305,10 @@ X.prototype.getxid = function(id){
 		return idcache[id];
 	}
 	var xfile = config.dispDir + "/concept/" + id + ".x";
-	if(!fs.existsSync(xfile))
+	if(!fs.existsSync(xfile)){
+		log.e(id);
 		throw "no xid: "+ id;
+	}
 	var ast = self.parse(fs.readFileSync(xfile).toString());
 	var xconfig = idcache[id] = self.normalize(ast[1][0], {})[1];
 /*
@@ -466,6 +484,15 @@ X.prototype.gen = function(ast, lang, scope, superflag){
 			rtn = self.gen(ast, key, scope);
 			if(rtn !== undefined) return rtn;
 		}
+	}
+
+// try generate using lang but failed, using default
+
+	var idconfig = self.getid(id, scope);
+	if(idconfig.local){
+		return self.eval(["call", {id: ast[0], param: ast[1]}], scope);
+	}else{
+		throw "id is not defined "+id;
 	}
 
 }
