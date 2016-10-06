@@ -51,7 +51,9 @@ function X(config){
 		}
 	}
 	self.internal = {
-		env: {string: 1},
+		setglobal: function(hash, scope){
+			self.scope[hash.key] = hash.value;
+		},
 		argv: {string: 1},
 		lang: {string: 1}
 	} 
@@ -85,6 +87,17 @@ X.prototype.parse = function(str){
 	return self.parser.parse(str);
 }
 
+X.prototype.istype = function(stc, ttype, scope){
+	var self = this;
+	if(stc[0] == ttype) return true;
+	if(stc[0] == "access"){
+		var iddef = self.getid(stc[1].id, scope);
+		if(stc[1].property){
+		}else{
+			return iddef.type == ttype;
+		}
+	}
+}
 X.prototype.getmain = function(arr, scope, doconfig){
 	var self = this;
 	var main = {};	
@@ -96,10 +109,7 @@ X.prototype.getmain = function(arr, scope, doconfig){
 		if(e[0] == '_arguments'){ 
 			//if has arguments, it is a function definition
 			main.type = "function";
-			for(var key in e[1]){
-				if(e[1][key].default) e[1][key].default = self.normalize(e[1][key].default, scope);
-			}
-			main.arguments = e[1];
+			main.arguments = self.normalize(e, scope)[1];;
 			main.columnindex = i;
 			main.config = {
 				content: {etc: 1}
@@ -125,7 +135,6 @@ X.prototype.getmain = function(arr, scope, doconfig){
 			propertyc ++;
 		}
 	}
-		
 	if(!main.type){
 		if(propertyc == arr.length){
 			main.type = 'hash';
@@ -143,9 +152,11 @@ X.prototype.getmain = function(arr, scope, doconfig){
 			main.columnindex = 0;
 		}
 	}
-	var tmpconfig = self.getid(main.type, scope);
-	main.config = tmpconfig.arguments;
-	if(tmpconfig.return) main.return = tmpconfig.return;
+	var iddef = self.getid(main.type, scope);
+	if(iddef.content){
+		if(iddef.content.return) main.return = iddef.content.return;
+		main.config = iddef.content.arguments;
+	}
 	return main;
 }
 
@@ -175,7 +186,7 @@ X.prototype.sentence = function(arr, scope, doconfig){
 				if(param.hasOwnProperty(key)){
 					continue;
 				}
-				if(!mc.type || mc.type == ne[0]){
+				if(!mc.type || self.istype(ne, mc.type, scope)){
 					param[key] = ne;
 					used = 1;
 					break;
@@ -262,25 +273,42 @@ X.prototype.normalize = function(ast, scope, doconfig){
 		return;
 	case "_main": 
 		return ['main', self.normalize(options, scope)];
+	case "_arguments": 
+
+		for(var key in options){
+			if(options[key].default) options[key].default = self.normalize(options[key].default, scope);
+		}
+		return ['arguments', options];
 	case "_id":
 		var ne = self.normalize(options, scope);
-		return ["id", ne];
+		return ["access", {'id': ne}];
+	case "_access":
+		var ne = self.normalize(options[0], scope);
+		return ["access", {
+			id: ne, 
+			property: self.normalize(options[1], scope)
+		}];
 	case "_assign":
 		var rtn = [];
 		var tobeassigned = self.normalize(options[1], scope, {assign: 1});
-		var varop = self.normalize(options[0], scope);
-		if(varop[0] == 'id' && !scope[varop[1]]){
-			scope[varop[1]] = {
+		var varop = self.normalize(options[0], scope); 
+		//['access', {'id': ?}]
+
+		if(varop[0] == 'access' && !scope[varop[1].id]){
+			scope[varop[1].id] = {
 				type: tobeassigned[0],
 				content: tobeassigned[1],
 				local: 1
-			};
-			rtn.push(['newvar', varop[1]]);
+			}
+			rtn.push(['newvar', ["access", {id: varop[1].id}]]);
 		}
 		rtn.push(['assign', [varop, tobeassigned]]);
 		return rtn;
 	case "_sentence":
 		return self.sentence(ast[1], scope, doconfig);
+	case "_return":
+		doconfig.return = ast[1];
+		return;
 	default:
 		throw "unknown id "+id;
 	}
@@ -292,7 +320,7 @@ X.prototype.getid = function(param, scope){
 	var self = this;
 	if(scope[param]) return scope[param];
 	var config = self.getxid(param);
-	if(!config) return {"new": 1};//new id
+	if(!config) throw "no id" + id;//new id
 	return config;
 }
 X.prototype.require = function(xfile){
@@ -310,10 +338,13 @@ X.prototype.getxid = function(id){
 		throw "no xid: "+ id;
 	}
 	var ast = self.parse(fs.readFileSync(xfile).toString());
-	var xconfig = idcache[id] = self.normalize(ast[1][0], {})[1];
-/*
-*/
-	return xconfig;
+//['main', [['function', {}]] ]
+	var xconfig = self.normalize(ast[1][0], {})[1];
+	idcache[id] = {
+		type: "function",
+		content: xconfig
+	}
+	return idcache[id];
 }
 X.prototype.writefile = function(){
 	var self = this;
@@ -380,7 +411,7 @@ X.prototype.x2jsobj = function(ast){
 X.prototype.eval = function(ast, scope){
 	var self = this;
 	var rtn;
-	if(!ast) return;
+	if(!ast) return "";
 	if(typeof ast[0] !== "string"){
 		for(var i in ast){
 			self.eval(ast[i], scope);
@@ -388,6 +419,7 @@ X.prototype.eval = function(ast, scope){
 		return;
 	}
 	var id = ast[0];
+	if(self.internal[id]) return self.internal[id](ast[1]);
 	var config = self.global.config;
 	//this lang
 	if(scope.lang){
@@ -436,6 +468,8 @@ X.prototype.gen = function(ast, lang, scope, superflag){
 				file: ttfile,
 				extend: {
 					eval: function(ast, config){
+						if(ast == undefined) return "";
+						if(typeof ast != "object") return ast;
 						var nextscope;
 						if(!config) config = {};
 						if(config.newscope){
@@ -479,8 +513,8 @@ X.prototype.gen = function(ast, lang, scope, superflag){
 			}
 		}
 	}
-	if(xconfig.deps){
-		for(var key in xconfig.deps){
+	if(xconfig.content.deps){
+		for(var key in xconfig.content.deps){
 			rtn = self.gen(ast, key, scope);
 			if(rtn !== undefined) return rtn;
 		}
@@ -490,6 +524,7 @@ X.prototype.gen = function(ast, lang, scope, superflag){
 
 	var idconfig = self.getid(id, scope);
 	if(idconfig.local){
+//todo call or value or ref etc
 		return self.eval(["call", {id: ast[0], param: ast[1]}], scope);
 	}else{
 		throw "id is not defined "+id;

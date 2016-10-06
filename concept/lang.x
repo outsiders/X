@@ -1,1 +1,2 @@
-@lang:Lang
+@lang
+setglobal "lang" lang

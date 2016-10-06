@@ -1,4 +1,4 @@
-function(^^=Object.keys(argv.arguments).join(", ")$$){
+function(^^=~['arguments', argv.arguments]$$){
 ^^for(var key in argv.arguments){
  var cfg = argv.arguments[key];
  if(cfg.default){$$

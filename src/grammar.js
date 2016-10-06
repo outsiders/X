@@ -98,8 +98,10 @@ var grammar = {
 							["Number", "$$ = $1"]
 						 ],		
 		"Assignable": [["Id", "$$ = ['_id', $1]"], 
-									 ["ParentheseUnit . Id", "$$ = ['_get', [$1, $3]]"],
-									 ["ParentheseUnit [ BasicUnit ]", "$$ = ['_get', [$1, $3]]"]
+									 ["Id . Id", "$$ = ['_access', [$1, $3]]"],
+									 ["Id [ BasicUnit ]", "$$ = ['_access', [$1, $3]]"],
+									 ["ParentheseUnit . Id", "$$ = ['_access', [$1, $3]]"],
+									 ["ParentheseUnit [ BasicUnit ]", "$$ = ['_access', [$1, $3]]"]
 									],
 		"Array": [[" BasicUnit , BasicUnit", "$$ = ['_array', [$1, $3]]"],
 							[" Array , BasicUnit",  "$$ = $1; $1[1].push($3)"]
