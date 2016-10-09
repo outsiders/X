@@ -1,2 +1,2 @@
-@lang
-setglobal "lang" lang
+@_
+deps: "name"

@@ -1,1 +1,2 @@
 @_
+deps: "internal"

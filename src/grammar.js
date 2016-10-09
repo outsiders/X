@@ -67,8 +67,7 @@ var grammar = {
     "Number": [[ "NUMBER", "$$ = ['_number', Number(yytext)]" ]],
 		"Paragraph": [[ "Sentence",  "$$ = [$1];"],
 									[ "Paragraph ; Sentence", "$$ = $1; $1.push($3);"],
-									[ "Paragraph ;", "$$ = $1;"],
-									[ "{ Paragraph }", "$$ = $2;"]
+									[ "Paragraph ;", "$$ = $1;"]
 								 ],
 		"Sentence": [["BasicSentence", "$$ = $1;"],
 								 ["AssignSentence", "$$ = $1;"]
@@ -86,13 +85,16 @@ var grammar = {
 						 ["Array", "$$ = $1"]
 						],
 		"BasicUnit": [["Value", "$$ = $1"],
+									["ParenthesetUnit", "$$ = $1"],
+									[ "{ Paragraph }", "$$ = ['_paragraph', $2];"],
 									["Assignable", "$$ = $1"],
 									["Call", "$$ = [$1]"],
-									["ParenthesetUnit", "$$ = $1"],
 									[ "` Unit `", "var tmp = {};tmp[$2[0]]=$2[1];$$ = ['_raw', tmp];"]
 								 ],
-		"PropertyUnit": [["Property BasicUnit", "$$ = ['_property', [$1, $2]]"]],
-		"ParentheseUnit": [["( BasicUnit )", "$$ = $2"]],
+		"PropertyUnit": [["Property BasicUnit", "$$ = ['_property', [$1, $2]]"],
+										 ["Property Array", "$$ = ['_property', [$1, $2]]"]],
+		"ParentheseUnit": [["( BasicUnit )", "$$ = $2"]
+											],
 		"Value": [["Null", "$$ = $1"], 
 							["String", "$$ = $1"],
 							["Number", "$$ = $1"]
