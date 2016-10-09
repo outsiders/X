@@ -4,5 +4,7 @@ function(^^=~['arguments', argv.arguments]$$){
  if(cfg.default){$$
 ^^=~['content', ['default', [key, cfg.default]]], {newscope:1}$$
 ^^}}$$
+ ^^if(argv.content){$$
 ^^=~['content', argv.content], {newscope:1}$$
+ ^^}$$
 }

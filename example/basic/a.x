@@ -1,3 +1,2 @@
-b = @x:lang { setlang x };
-b python
-
+`python`;
+print "a"
