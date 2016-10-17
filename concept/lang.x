@@ -1,2 +1,1 @@
-@_
-deps: "name"
+:name

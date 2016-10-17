@@ -12,7 +12,7 @@ var grammar = {
 			"sp": "\\s*"
     },
     "rules": [
-      ["\\#[^\\n\\r]*[\\n\\r]+", "return"], 
+      ["\\#[^\\n\\r]*[\\n\\r]+", "return"],
       ["{sp}{int}{frac}?{exp}?\\b{sp}", 
 			 "yytext = yytext.replace(/\\s/g, ''); return 'NUMBER';"],
       ["{sp}\"(?:{esc}[\"bfnrt/{esc}]|{esc}u[a-fA-F0-9]{4}|[^\"{esc}])*\"{sp}",
@@ -112,13 +112,15 @@ var grammar = {
 		"Definition": [["Dependencies ReturnStatement Arguments FunctionBlock", "$$ = ['_definiton', {deps: $1, return: $2, args: $3, content: $4}]"],
 									 ["Dependencies Arguments FunctionBlock", "$$ = ['_definiton', {deps: $1, args: $2, content: $3}]"],
 									 ["ReturnStatement Arguments FunctionBlock", "$$ = ['_definiton', {deps: {function: 1}, return: $1, args: $2, content: $3}]"],
+									 ["Dependencies ReturnStatement FunctionBlock", "$$ = ['_definiton', {deps: $1, return: $2, args: {}, content: $3}]"],
 									 ["Arguments FunctionBlock", "$$ = ['_definiton', {deps: {function: 1}, args: $1, content: $2}]"],
-									 ["Dependencies", "$$ = ['_definiton', {deps: $1, args: {}, content: []}]"]
+									 ["Dependencies FunctionBlock", "$$ = ['_definiton', {deps: $1, args: {}, content: $2}]"],
+									 ["ReturnStatement FunctionBlock", "$$ = ['_definiton', {deps: {function:1}, return: $1, args: {}, content: $2}]"]
 									],
 		"ReturnStatement": [["~ Id", "$$ = $2;"]],
 		"Dependencies": [[": DependencyArray", "$$ = $2;"]],
 		"DependencyArray": [["Id", "$$ = {}; $$[$1] = 1"],
-												["DependencyArray Id", "$$ = $1; $1[$3] = 1"]
+												["DependencyArray , Id", "$$ = $1; $1[$3] = 1"]
 											 ],
 		"Arguments": [["@ ArgumentArray", "$$=$2;"],
 									["@ Null", "$$ = {}"]

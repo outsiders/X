@@ -1,2 +1,1 @@
-@_
-deps: entity
+:entity

@@ -1,6 +1,6 @@
-function(^^=~['arguments', argv.arguments]$$){
-^^for(var key in argv.arguments){
- var cfg = argv.arguments[key];
+function(^^=~['arguments', argv.args]$$){
+^^for(var key in argv.args){
+ var cfg = argv.args[key];
  if(cfg.default){$$
 ^^=~['content', ['default', [key, cfg.default]]], {newscope:1}$$
 ^^}}$$
