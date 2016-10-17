@@ -1,2 +1,1 @@
-@content: paragraph
-deps: "lang"
+:lang @content: paragraph

@@ -1,0 +1,3 @@
+^^if(typeof argv[0] == 'string') argv = [argv]$$
+^^for(var i in argv){$$
+^^for(var j=0; j<scope._indent; j++){$$^^=tab$$^^}$$$$^^=~argv[i]$$^^}$$

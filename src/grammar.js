@@ -42,12 +42,13 @@ var grammar = {
       ["{sp}\\?{sp}", "return '?'"],
       ["{sp}\\~{sp}", "return '~'"],
       ["{sp}\\`{sp}", "return '`'"],
+      ["{sp}\\:{sp}", "return ':'"],
       ["{sp},{sp}", "return ','"],
       ["{sp};{sp}", "return ';'"]
 
     ]
   },
-  "tokens": "STRING NUMBER PROPERTY ID . { } [ ] ( ) & = + - * / , : ~ ? ` _",
+  "tokens": "STRING NUMBER PROPERTY ID . { } [ ] ( ) & | @ = _ + - * / ? ~ ` : , ; ",
 	"operators": [
 		["left", ","],
 //		["left", "."],
@@ -59,7 +60,9 @@ var grammar = {
 	],
   "start": "Artical",
   "bnf": {
-		"Artical": [["Paragraph", "return $$ = ['_main', $1]"]],
+		"Artical": [["Paragraph", "return $$ = ['_main', $1]"],
+								["Definition", "return $$ = $1;"]
+							 ],
 		"Id": [[ "ID", "$$ = yytext"]],
 		"Property": [[ "PROPERTY", "$$ = yytext"]],
     "Null": [[ "_", "$$ = ['_null']" ]],
@@ -69,59 +72,65 @@ var grammar = {
 									[ "Paragraph ; Sentence", "$$ = $1; if($3){$1.push($3);}"],
 									[ "Paragraph ;", "$$ = $1;"]
 								 ],
-		"Sentence": [["BasicSentence", "$$ = $1;"],
-								 ["AssignSentence", "$$ = $1;"],
+		"Sentence": [["Units", "$$ = $1;"],
+								 ["Assign", "$$ = $1;"],
 								 ["Internal", "$$ = $1"]
 								],
-		"Internal": [[ "` Id `", "yy.scope._lang = $2; $$ = undefined"]],
-		"BasicSentence": [["Unit", "$$ = ['_sentence', [$1]];"],
-											["BasicSentence Unit", "$$ = $1; $1[1].push($2)"]
-										 ],
-		"AssignSentence": [["Assignable = BasicSentence", "$$ = ['_assign', [$1, $3]];"],
-											 ["Array = BasicSentence", "$$ = ['_assign', [$1, $3]];"]
-											],
-		"Unit": [["BasicUnit", "$$= $1"],
-						 ["PropertyUnit", "$$ = $1"],
-						 ["Arguments", "$$ = $1"],
+		"Internal": [[ "` Id `", "yy.setlang($2); $$ = undefined"]],
+		"Units": [["Unit", "$$ = ['_sentence', {content: [$1]}];"],
+							["Units Unit", "$$ = $1; $1[1].content.push($2)"],
+							["PropertyUnit", "var tmp = {}; tmp[$1[0]] = $1[1];$$ = ['_sentence', {config: tmp, content: []}];"],
+							["Units PropertyUnit", "$$ = $1; $1[1].config[$2[0]] = $2[1]"]
+						 ],
+		"Assign": [["Assignable = Units", "$$ = ['_assign', [$1, $3]];"],
+							 ["Array = Units", "$$ = ['_assign', [$1, $3]];"],
+							 ["Assignable = Definition", "$$ = ['_assign', [$1, $3]]"]
+							],
+		"Unit": [["Value", "$$ = $1"],
+						 ["Assignable", "$$ = $1"],
 						 ["Operation", "$$ = $1;"],
-						 ["Array", "$$ = $1"]
+						 ["( Units )", "$$ = $1;"],
+						 ["{ Paragraph }", "$$ = ['_paragraph', $2];"]
 						],
-		"BasicUnit": [["Value", "$$ = $1"],
-									["ParentheseUnit", "$$ = $1"],
-									[ "{ Paragraph }", "$$ = ['_paragraph', $2];"],
-									["Assignable", "$$ = $1"],
-									["Call", "$$ = [$1]"]
-								 ],
-		"PropertyUnit": [["Property BasicUnit", "$$ = ['_property', [$1, $2]]"],
-										 ["Property Array", "$$ = ['_property', [$1, $2]]"]],
-		"ParentheseUnit": [["( Sentence )", "$$ = ['_normalize', $2]"]
-											],
+		"FunctionBlock": [["Units", "var c = $1[1].content; if(c.length == 1 && c[0][0] == '_paragraph') $$ = c[0]; else $$ = ['_paragraph', $1];"],
+											["", "$$ = []"]
+										 ],
 		"Value": [["Null", "$$ = $1"], 
 							["String", "$$ = $1"],
 							["Number", "$$ = $1"]
-						 ],		
-		"Assignable": [["Id", "$$ = ['_id', $1]"], 
-									 ["Id . Id", "$$ = ['_access', [$1, $3]]"],
-									 ["Id [ BasicUnit ]", "$$ = ['_access', [$1, $3]]"],
-									 ["ParentheseUnit . Id", "$$ = ['_access', [$1, $3]]"],
-									 ["ParentheseUnit [ BasicUnit ]", "$$ = ['_access', [$1, $3]]"]
+						 ],
+		"PropertyUnit": [["Property Unit", "$$ = [$1, $2]"]],
+		"Assignable": [["Id", "$$ = ['_access', [$1]]"], 
+									 ["( Units ) . Id", "$$ = ['_access', [$2, $5]]"],
+									 ["Assignable . Id", "$$ = ['_access', [$1, $3]]"],
+									 ["Assignable . [ Units ]", "$$ = ['_access', [$1, $4]]"]
 									],
-		"Array": [[" BasicUnit , BasicUnit", "$$ = ['_array', [$1, $3]]"],
-							[" Array , BasicUnit",  "$$ = $1; $1[1].push($3)"]
+		"Array": [[" Unit , Unit", "$$ = ['_array', [$1, $3]]"],
+							[" Array , Unit",  "$$ = $1; $1[1].push($3)"]
 						 ],
 		"Call": [["& BasicUnit ", "$$ = ['_call', $2];"]],
-		"Arguments": [["@ ArgumentsArray", "$$ = ['_arguments', $2]"],
-									["@ Null", "$$ = ['_arguments', {}]"],
-									["Arguments ~ Id", "$$ = $1; $$[1]['_return'] = $3;"]
+		"Definition": [["Dependencies ReturnStatement Arguments FunctionBlock", "$$ = ['_definiton', {deps: $1, return: $2, args: $3, content: $4}]"],
+									 ["Dependencies Arguments FunctionBlock", "$$ = ['_definiton', {deps: $1, args: $2, content: $3}]"],
+									 ["ReturnStatement Arguments FunctionBlock", "$$ = ['_definiton', {deps: {function: 1}, return: $1, args: $2, content: $3}]"],
+									 ["Arguments FunctionBlock", "$$ = ['_definiton', {deps: {function: 1}, args: $1, content: $2}]"],
+									 ["Dependencies", "$$ = ['_definiton', {deps: $1, args: {}, content: []}]"]
+									],
+		"ReturnStatement": [["~ Id", "$$ = $2;"]],
+		"Dependencies": [[": DependencyArray", "$$ = $2;"]],
+		"DependencyArray": [["Id", "$$ = {}; $$[$1] = 1"],
+												["DependencyArray Id", "$$ = $1; $1[$3] = 1"]
+											 ],
+		"Arguments": [["@ ArgumentArray", "$$=$2;"],
+									["@ Null", "$$ = {}"]
 								 ],
-		"ArgumentsElement": [["Id", "$$ = [$1, {}]"],
-												 ["Property Id", "$$ = [$1, {type: $2}]"],
-												 ["Property *", "$$ = [$1, {etc: 1}]"],
-												 ["Id ? BasicUnit", "$$ = [$1, {default: $3}]"],
-												 ["Property Id ? BasicUnit", "$$ = [$1, {type: $2, default: $4}]"]
+		"ArgumentElement": [["Id", "$$ = [$1, {}]"],
+												["Property Id", "$$ = [$1, {type: $2}]"],
+												["Property *", "$$ = [$1, {etc: 1}]"],
+												["Id ? BasicUnit", "$$ = [$1, {default: $3}]"],
+												["Property Id ? BasicUnit", "$$ = [$1, {type: $2, default: $4}]"]
 												],
-		"ArgumentsArray": [["ArgumentsElement", "$$={}; $$[$1[0]] = $1[1];"],
-											 ["ArgumentsArray , ArgumentsElement", "$$=$1; $$[$3[0]] = $3[1]"]
+		"ArgumentArray": [["ArgumentElement", "$$={}; $$[$1[0]] = $1[1];"],
+											["ArgumentArray , ArgumentElement", "$$=$1; $$[$3[0]] = $3[1]"]
 											],
 		"Operation": [[ "BasicUnit + BasicUnit", "$$ = ['_add', [$1, $3]]"]
 								 ]
