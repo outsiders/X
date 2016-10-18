@@ -75,7 +75,7 @@ function render(config, data){
 	var local = data;
 	var p=[];
 	var win, wout;
-	var tab = "\t";
+
 	var evalstr = "p.push('";
 	var originstr = config.str.replace(/\r/g,"");
 	with(data){

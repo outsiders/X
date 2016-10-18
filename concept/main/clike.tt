@@ -1,3 +1,0 @@
-^^for(var i in argv){$$
-^^=~['content', argv[i]]$$
-^^}$$

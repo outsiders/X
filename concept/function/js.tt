@@ -1,10 +1,13 @@
 function(^^=~['arguments', argv.args]$$){
-^^for(var key in argv.args){
+^^
+for(var key in argv.args){
  var cfg = argv.args[key];
- if(cfg.default){$$
-^^=~['content', ['default', [key, cfg.default]]], {newscope:1}$$
-^^}}$$
- ^^if(argv.content){$$
-^^=~['content', argv.content], {newscope:1}$$
- ^^}$$
+ if(cfg.default){
+	argv.content.unshift(['default', [key, cfg.default]])
+ }
+}
+$$
+^^if(argv.content){$$
+	^^=~argv.content$$
+^^}$$
 }

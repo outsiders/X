@@ -68,8 +68,8 @@ var grammar = {
     "Null": [[ "_", "$$ = ['_null']" ]],
     "String": [[ "STRING", "$$ = ['_string', yytext]" ]],
     "Number": [[ "NUMBER", "$$ = ['_number', Number(yytext)]" ]],
-		"Paragraph": [[ "Sentence",  "if($1) $$ = [$1]; else $$ = [];"],
-									[ "Paragraph ; Sentence", "$$ = $1; if($3){$1.push($3);}"],
+		"Paragraph": [[ "Sentence",  "if($1) $$ = ['_paragraph', [$1]]; else $$ = ['_paragraph', []];"],
+									[ "Paragraph ; Sentence", "$$ = $1; if($3){$1[1].push($3);}"],
 									[ "Paragraph ;", "$$ = $1;"]
 								 ],
 		"Sentence": [["Units", "$$ = $1;"],
@@ -77,7 +77,7 @@ var grammar = {
 								 ["Internal", "$$ = $1"]
 								],
 		"Internal": [[ "` Id `", "yy.setlang($2); $$ = undefined"]],
-		"Units": [["Unit", "$$ = ['_sentence', {content: [$1]}];"],
+		"Units": [["Unit", "$$ = ['_sentence', {config:{},content: [$1]}];"],
 							["Units Unit", "$$ = $1; $1[1].content.push($2)"],
 							["PropertyUnit", "var tmp = {}; tmp[$1[0]] = $1[1];$$ = ['_sentence', {config: tmp, content: []}];"],
 							["Units PropertyUnit", "$$ = $1; $1[1].config[$2[0]] = $2[1]"]
@@ -89,10 +89,10 @@ var grammar = {
 		"Unit": [["Value", "$$ = $1"],
 						 ["Assignable", "$$ = $1"],
 						 ["Operation", "$$ = $1;"],
-						 ["( Units )", "$$ = $1;"],
-						 ["{ Paragraph }", "$$ = ['_paragraph', $2];"]
+						 ["( Units )", "$$ = $2;"],
+						 ["{ Paragraph }", "$$ = $2;"]
 						],
-		"FunctionBlock": [["Units", "var c = $1[1].content; if(c.length == 1 && c[0][0] == '_paragraph') $$ = c[0]; else $$ = ['_paragraph', $1];"],
+		"FunctionBlock": [["Units", "var c = $1[1].content; if(c.length == 1 && c[0][0] == '_paragraph') $$ = c[0]; else $$ = ['_paragraph', [$1]];"],
 											["", "$$ = []"]
 										 ],
 		"Value": [["Null", "$$ = $1"], 
@@ -134,7 +134,7 @@ var grammar = {
 		"ArgumentArray": [["ArgumentElement", "$$={}; $$[$1[0]] = $1[1];"],
 											["ArgumentArray , ArgumentElement", "$$=$1; $$[$3[0]] = $3[1]"]
 											],
-		"Operation": [[ "BasicUnit + BasicUnit", "$$ = ['_add', [$1, $3]]"]
+		"Operation": [[ "Unit + Unit", "$$ = ['_add', [$1, $3]]"]
 								 ]
   }
 };

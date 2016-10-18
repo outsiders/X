@@ -1,0 +1,3 @@
+^^for(var i in argv.content){$$
+^^=~argv.content[i]$$;
+^^}$$

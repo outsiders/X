@@ -1,0 +1,11 @@
+^^
+var keys = [];
+for(var key in scope){
+ if(key[0] != "_" && !scope[key].defined)
+  keys.push(key);
+}
+$$
+^^if(keys.length > 0){$$
+var ^^=keys.join(", ")$$;
+^^}$$
+^^=$.super()$$
