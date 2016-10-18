@@ -1,9 +1,10 @@
-function(^^=~argv.constructor$$){
-^^=~['content', ['raw', "var self = this"]], {newscope:1}$$
-^^for(var key in argv.constructor[1]){$$
-^^=~['content', ['assign', [['property', key], key ]]], {newscope:1}$$
-^^}$$
-^^for(var key in argv){if(key != "constructor"){$$
-^^=~['content', ['default', [['property', key], argv[key]]]], {newscope:1}$$
+^^console.log(argv)$$
+function(){
+	var self = this;
+^^var i =0; for(var key in argv.args){$$
+	self.^^=key$$ = arguments[^^=i$$];
+^^i++;}$$
+^^for(var key in argv.args){if(argv.args[key].default){$$
+	^^=~['default', ["self."+ key, argv.args[key].default]]$$;
 ^^}}$$
 }

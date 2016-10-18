@@ -1,1 +1,1 @@
-@constructor: arguments, content: * 
+:type @constructor: *

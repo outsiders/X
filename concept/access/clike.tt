@@ -1,1 +1,1 @@
-^^=~argv.id$$^^if(argv.property){$$["^^=argv.property$$"]^^}$$
+^^=~argv.id$$^^if(argv.property){$$[^^=~argv.property, {mark:'"'}$$]^^}$$

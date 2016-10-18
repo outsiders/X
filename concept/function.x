@@ -1,1 +1,1 @@
-@content:*
+:type @content:*

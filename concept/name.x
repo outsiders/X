@@ -1,1 +1,1 @@
-~string
+:entity ~string

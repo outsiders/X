@@ -1,6 +1,6 @@
-var a, b;
+var a, b, c, d;
 console.log("a");
-a = 1;
+a = "x";
 console.log(a);
 b = function(x){
 	var y, z;
@@ -10,3 +10,12 @@ b = function(x){
 };
 b(1);
 b(1);
+c = function(){
+	var self = this;
+	self.x = arguments[0];
+	if(self.x === undefined) self.x = 1;
+};
+d = new c(1);
+d["x"];
+d["x"];
+d[a];

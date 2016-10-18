@@ -1,2 +1,2 @@
-@class: class, param: *
-~object
+~object @class: class, param: *
+

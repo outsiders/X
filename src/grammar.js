@@ -90,6 +90,7 @@ var grammar = {
 						 ["Assignable", "$$ = $1"],
 						 ["Operation", "$$ = $1;"],
 						 ["( Units )", "$$ = $2;"],
+						 ["( Definition )", "$$ = $2;"],
 						 ["{ Paragraph }", "$$ = $2;"]
 						],
 		"FunctionBlock": [["Units", "var c = $1[1].content; if(c.length == 1 && c[0][0] == '_paragraph') $$ = c[0]; else $$ = ['_paragraph', [$1]];"],
@@ -103,7 +104,7 @@ var grammar = {
 		"Assignable": [["Id", "$$ = ['_access', [$1]]"], 
 									 ["( Units ) . Id", "$$ = ['_access', [$2, $5]]"],
 									 ["Assignable . Id", "$$ = ['_access', [$1, $3]]"],
-									 ["Assignable . [ Units ]", "$$ = ['_access', [$1, $4]]"]
+									 ["Assignable [ Units ]", "$$ = ['_access', [$1, $3]]"]
 									],
 		"Array": [[" Unit , Unit", "$$ = ['_array', [$1, $3]]"],
 							[" Array , Unit",  "$$ = $1; $1[1].push($3)"]
@@ -128,8 +129,8 @@ var grammar = {
 		"ArgumentElement": [["Id", "$$ = [$1, {}]"],
 												["Property Id", "$$ = [$1, {type: $2}]"],
 												["Property *", "$$ = [$1, {etc: 1}]"],
-												["Id ? BasicUnit", "$$ = [$1, {default: $3}]"],
-												["Property Id ? BasicUnit", "$$ = [$1, {type: $2, default: $4}]"]
+												["Id ? Unit", "$$ = [$1, {default: $3}]"],
+												["Property Id ? Unit", "$$ = [$1, {type: $2, default: $4}]"]
 												],
 		"ArgumentArray": [["ArgumentElement", "$$={}; $$[$1[0]] = $1[1];"],
 											["ArgumentArray , ArgumentElement", "$$=$1; $$[$3[0]] = $3[1]"]
