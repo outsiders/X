@@ -1,4 +1,3 @@
-^^console.log(argv)$$
 function(){
 	var self = this;
 ^^var i =0; for(var key in argv.args){$$

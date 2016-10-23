@@ -33,12 +33,21 @@ var grammar = {
       ["{sp}\\&{sp}", "return '&'"],
       ["{sp}\\|{sp}", "return '|'"],
       ["{sp}\\@{sp}", "return '@'"],
-			["{sp}={sp}", "return '='"],
 			["{sp}\\_{sp}", "return '_'"],
+      ["{sp}>={sp}", "return '>='"],
+      ["{sp}<={sp}", "return '<='"],
+			["{sp}=={sp}", "return '=='"],
+			["{sp}\\+={sp}", "return '+='"],
+			["{sp}\\-={sp}", "return '-='"],
+			["{sp}\\*={sp}", "return '*='"],
+			["{sp}\\/={sp}", "return '/='"],
 			["{sp}\\+{sp}", "return '+'"],
 			["{sp}\\-{sp}", "return '-'"],
 			["{sp}\\*{sp}", "return '*'"],
 			["{sp}\\/{sp}", "return '/'"],
+      ["{sp}>{sp}", "return '>'"],
+      ["{sp}<{sp}", "return '<'"],
+			["{sp}={sp}", "return '='"],
       ["{sp}\\?{sp}", "return '?'"],
       ["{sp}\\~{sp}", "return '~'"],
       ["{sp}\\`{sp}", "return '`'"],
@@ -48,15 +57,17 @@ var grammar = {
 
     ]
   },
-  "tokens": "STRING NUMBER PROPERTY ID . { } [ ] ( ) & | @ = _ + - * / ? ~ ` : , ; ",
+  "tokens": "STRING NUMBER PROPERTY ID . { } [ ] ( ) & | @ = _ + - * / > < == >= <= += -= *= /= ? ~ ` : , ; ",
 	"operators": [
 		["left", ","],
 //		["left", "."],
 //		["right", "RIGHTOPERATORID"],
 //		["left", "LEFTOPERATORID"],
     ["right", "="],
+    ["right", "+=", "-=", "*=", "/="],
     ["left", "*", "/"],
-		["left", "+", "-"]
+		["left", "+", "-"],
+		["left", "<", ">", "<=", ">=", "=="]
 	],
   "start": "Artical",
   "bnf": {
@@ -74,8 +85,11 @@ var grammar = {
 								 ],
 		"Sentence": [["Units", "$$ = $1;"],
 								 ["Assign", "$$ = $1;"],
+								 ["For", "$$ = $1;"],
 								 ["Internal", "$$ = $1"]
 								],
+		"For": [["* ( Sentence ; Sentence ; Sentence ) FunctionBlock", "$$ = ['_for', {start: $3, end: $5, inc: $7, content: $9}]"]
+					 ],
 		"Internal": [[ "` Id `", "yy.setlang($2); $$ = undefined"]],
 		"Units": [["Unit", "$$ = ['_sentence', {config:{},content: [$1]}];"],
 							["Units Unit", "$$ = $1; $1[1].content.push($2)"],
@@ -84,7 +98,8 @@ var grammar = {
 						 ],
 		"Assign": [["Assignable = Units", "$$ = ['_assign', [$1, $3]];"],
 							 ["Array = Units", "$$ = ['_assign', [$1, $3]];"],
-							 ["Assignable = Definition", "$$ = ['_assign', [$1, $3]]"]
+							 ["Assignable = Definition", "$$ = ['_assign', [$1, $3]]"],
+							 ["Assignable += Units", "$$ = ['_assign', [$1, ['_add', [$1, $3]]]];"]
 							],
 		"Unit": [["Value", "$$ = $1"],
 						 ["Assignable", "$$ = $1"],
@@ -93,9 +108,10 @@ var grammar = {
 						 ["( Definition )", "$$ = $2;"],
 						 ["{ Paragraph }", "$$ = $2;"]
 						],
-		"FunctionBlock": [["Units", "var c = $1[1].content; if(c.length == 1 && c[0][0] == '_paragraph') $$ = c[0]; else $$ = ['_paragraph', [$1]];"],
-											["", "$$ = []"]
-										 ],
+		"FunctionBlockOrNone": [["FunctionBlock", "$$= $1"],
+														["", "$$ = []"]
+													 ],
+		"FunctionBlock": [["Units", "var c = $1[1].content; if(c.length == 1 && c[0][0] == '_paragraph'){ $$ = c[0]; }else{ $$ = ['_paragraph', [$1]]; }"]],
 		"Value": [["Null", "$$ = $1"], 
 							["String", "$$ = $1"],
 							["Number", "$$ = $1"]
@@ -110,13 +126,13 @@ var grammar = {
 							[" Array , Unit",  "$$ = $1; $1[1].push($3)"]
 						 ],
 		"Call": [["& BasicUnit ", "$$ = ['_call', $2];"]],
-		"Definition": [["Dependencies ReturnStatement Arguments FunctionBlock", "$$ = ['_definiton', {deps: $1, return: $2, args: $3, content: $4}]"],
-									 ["Dependencies Arguments FunctionBlock", "$$ = ['_definiton', {deps: $1, args: $2, content: $3}]"],
-									 ["ReturnStatement Arguments FunctionBlock", "$$ = ['_definiton', {deps: {function: 1}, return: $1, args: $2, content: $3}]"],
-									 ["Dependencies ReturnStatement FunctionBlock", "$$ = ['_definiton', {deps: $1, return: $2, args: {}, content: $3}]"],
-									 ["Arguments FunctionBlock", "$$ = ['_definiton', {deps: {function: 1}, args: $1, content: $2}]"],
-									 ["Dependencies FunctionBlock", "$$ = ['_definiton', {deps: $1, args: {}, content: $2}]"],
-									 ["ReturnStatement FunctionBlock", "$$ = ['_definiton', {deps: {function:1}, return: $1, args: {}, content: $2}]"]
+		"Definition": [["Dependencies ReturnStatement Arguments FunctionBlockOrNone", "$$ = ['_definiton', {deps: $1, return: $2, args: $3, content: $4}]"],
+									 ["Dependencies Arguments FunctionBlockOrNone", "$$ = ['_definiton', {deps: $1, args: $2, content: $3}]"],
+									 ["ReturnStatement Arguments FunctionBlockOrNone", "$$ = ['_definiton', {deps: {function: 1}, return: $1, args: $2, content: $3}]"],
+									 ["Dependencies ReturnStatement FunctionBlockOrNone", "$$ = ['_definiton', {deps: $1, return: $2, args: {}, content: $3}]"],
+									 ["Arguments FunctionBlockOrNone", "$$ = ['_definiton', {deps: {function: 1}, args: $1, content: $2}]"],
+									 ["Dependencies FunctionBlockOrNone", "$$ = ['_definiton', {deps: $1, args: {}, content: $2}]"],
+									 ["ReturnStatement FunctionBlockOrNone", "$$ = ['_definiton', {deps: {function:1}, return: $1, args: {}, content: $2}]"]
 									],
 		"ReturnStatement": [["~ Id", "$$ = $2;"]],
 		"Dependencies": [[": DependencyArray", "$$ = $2;"]],
@@ -135,7 +151,8 @@ var grammar = {
 		"ArgumentArray": [["ArgumentElement", "$$={}; $$[$1[0]] = $1[1];"],
 											["ArgumentArray , ArgumentElement", "$$=$1; $$[$3[0]] = $3[1]"]
 											],
-		"Operation": [[ "Unit + Unit", "$$ = ['_add', [$1, $3]]"]
+		"Operation": [["Unit + Unit", "$$ = ['_add', [$1, $3]]"],
+									["Unit < Unit", "$$ = ['_lt', [$1, $3]]"]
 								 ]
   }
 };

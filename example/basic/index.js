@@ -1,4 +1,4 @@
-var a, b, c, d;
+var a, b, c, d, x;
 console.log("a");
 a = "x";
 console.log(a);
@@ -19,3 +19,7 @@ d = new c(1);
 d["x"];
 d["x"];
 d[a];
+for(x = 1;x < 3;x = x+1){
+	console.log(x);
+	x = x+1;
+};

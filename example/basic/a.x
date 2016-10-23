@@ -8,4 +8,8 @@ c = :class @x:number?1;
 d = new c 1;
 d.x;
 d["x"];
-d[a]
+d[a];
+* (x=1;x<3;x+=1) {
+print x;
+x += 1;
+}

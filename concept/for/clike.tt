@@ -1,0 +1,4 @@
+for(^^=~argv.start$$;^^=~argv.end$$;^^=~argv.inc$$){
+^^console.log(argv.content)$$
+	^^=~argv.content$$
+}
