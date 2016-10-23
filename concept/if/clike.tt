@@ -1,0 +1,5 @@
+if(^^=~argv.condition$$){
+	^^=~argv.content$$
+}^^if(argv.else){$$else{
+	^^=~argv.else$$
+}^^}$$

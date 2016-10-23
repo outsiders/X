@@ -23,3 +23,17 @@ for(x = 1;x < 3;x = x+1){
 	console.log(x);
 	x = x+1;
 };
+var _ta0 = [1, 2, 3];
+var _ti0;
+for(_ti0 = 0; _ti0 < _ta0.length; _ti0++){
+	x = _ta0[_ti0];
+	console.log(x);
+};
+if(x){
+	console.log(x);
+};
+if(a){
+	console.log(a);
+}else{
+	console.log(b);
+};

@@ -13,6 +13,9 @@ var grammar = {
     },
     "rules": [
       ["\\#[^\\n\\r]*[\\n\\r]+", "return"],
+			["for", "return 'FOR'"],
+			["if", "return 'IF'"],
+			["else", "return 'ELSE'"],
       ["{sp}{int}{frac}?{exp}?\\b{sp}", 
 			 "yytext = yytext.replace(/\\s/g, ''); return 'NUMBER';"],
       ["{sp}\"(?:{esc}[\"bfnrt/{esc}]|{esc}u[a-fA-F0-9]{4}|[^\"{esc}])*\"{sp}",
@@ -57,7 +60,7 @@ var grammar = {
 
     ]
   },
-  "tokens": "STRING NUMBER PROPERTY ID . { } [ ] ( ) & | @ = _ + - * / > < == >= <= += -= *= /= ? ~ ` : , ; ",
+  "tokens": "FOR IF ELSE STRING NUMBER PROPERTY ID . { } [ ] ( ) & | @ = _ + - * / > < == >= <= += -= *= /= ? ~ ` : , ; ",
 	"operators": [
 		["left", ","],
 //		["left", "."],
@@ -86,10 +89,16 @@ var grammar = {
 		"Sentence": [["Units", "$$ = $1;"],
 								 ["Assign", "$$ = $1;"],
 								 ["For", "$$ = $1;"],
+								 ["If", "$$ = $1;"],
 								 ["Internal", "$$ = $1"]
 								],
-		"For": [["* ( Sentence ; Sentence ; Sentence ) FunctionBlock", "$$ = ['_for', {start: $3, end: $5, inc: $7, content: $9}]"]
+		"For": [["FOR ( Sentence ; Sentence ; Sentence ) FunctionBlock", "$$ = ['_for', {start: $3, end: $5, inc: $7, content: $9}]"],
+						["FOR Assignable ArrayUnit FunctionBlock", "$$ = ['_foreach', {array: $3, element: $2, content: $4}]"],
+						["FOR Assignable , Assignable ArrayUnit FunctionBlock", "$$ = ['_foreach', {array: $5, element: $2, index: $4, content: $6}]"]
 					 ],
+		"If": [["IF Unit FunctionBlock", "$$=['_if', {condition:$2, content:$3}]"],
+					 ["IF Unit FunctionBlock ELSE FunctionBlock", "$$=['_if',{condition: $2, content: $3, else: $5}]"]
+					],
 		"Internal": [[ "` Id `", "yy.setlang($2); $$ = undefined"]],
 		"Units": [["Unit", "$$ = ['_sentence', {config:{},content: [$1]}];"],
 							["Units Unit", "$$ = $1; $1[1].content.push($2)"],
@@ -122,6 +131,9 @@ var grammar = {
 									 ["Assignable . Id", "$$ = ['_access', [$1, $3]]"],
 									 ["Assignable [ Units ]", "$$ = ['_access', [$1, $3]]"]
 									],
+		"ArrayUnit": [["Unit", "$$ = $1"],
+									["Array", "$$ = $1"]
+								 ],
 		"Array": [[" Unit , Unit", "$$ = ['_array', [$1, $3]]"],
 							[" Array , Unit",  "$$ = $1; $1[1].push($3)"]
 						 ],

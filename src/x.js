@@ -38,8 +38,11 @@ function X(config){
 		main: {}
 	};
 	self.scope = {
-		_indent: ""
+		_indent: "",
+		_index: 0
 	};
+	self.scopes= [self.scope];
+	self.scopeIndex = 1;
 	self.src = {};
 	self.filelist = {};
 	self.filecount = 0;
@@ -164,8 +167,11 @@ X.prototype.normalize = function(ast, scope, nconfig){
 		if(!nconfig.main){
 			var newscope = {
 				_parent: scope,
-				_indent: scope._indent + "\t"
+				_indent: scope._indent + "\t",
+				_index: self.scopeIndex
 			};
+			self.scopes.push(newscope);
+			self.scopeIndex ++;
 			if(nconfig.newscope){
 				for(var key in nconfig.newscope){
 					newscope[key] = nconfig.newscope[key];
@@ -192,6 +198,19 @@ X.prototype.normalize = function(ast, scope, nconfig){
 			end: self.normalize(options.end, scope),
 			inc: self.normalize(options.inc, scope),
 			content: self.normalize(options.content, scope, {noreturn: 1})
+		}];
+	case "_foreach": 
+		return ['foreach', {
+			array: self.normalize(options.array, scope),
+			element: self.normalize(options.element, scope),
+			index: self.normalize(options.index, scope),
+			content: self.normalize(options.content, scope, {noreturn: 1})
+		}];
+	case "_if": 
+		return ['if', {
+			condition: self.normalize(options.condition, scope),
+			content: self.normalize(options.content, scope, {noreturn: 1}),
+			else: self.normalize(options.else, scope, {noreturn: 1})
 		}];
 	case "_number": 
 		return ['number', options];
@@ -287,10 +306,14 @@ X.prototype.setscope = function(options, toset, scope, config){
 		if(!config.islib){
 			t = self.access(options, scope);
 		}
-		if(!t) t = scope[options] = {
-			scope: {_parent: scope},
-			id: options
-		};
+		if(!t){
+			t = scope[options] = {
+				scope: {_parent: scope, _index: self.scopeIndex},
+				id: options
+			};
+			self.scopes.push(t.scope);
+			self.scopeIndex ++;
+		}
 		if(!t.def) t.def = toset[1];
 		if(config){
 			for(var key in config){
@@ -587,11 +610,14 @@ X.prototype.gen = function(ast, lang, scope, genconfig){
 // try generate using lang but failed, using default
 
 	var idconfig = self.access(id, scope);
+	if(!idconfig){
+		throw "no id: "+id;
+	}
 	if(idconfig.local){
 		return self.eval(["call", {id: ast[0], param: ast[1]}], scope);
 	}else{
 		log.e("Please implement: concept/" + idconfig.id + "/"+ lang +".tt");
-		throw "error"
+		throw "error";
 	}
 
 	if(idconfig.local){

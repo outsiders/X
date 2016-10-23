@@ -1,0 +1,23 @@
+^^
+var array;
+if(argv.array[0] == "access"){
+ array = $.eval(argv.array);
+}else{
+ array = "_ta" + scope._index;
+$$
+var ^^=array$$ = ^^=~argv.array$$;
+^^
+}
+if(argv.index){
+ index = $.eval(argv.index);
+}else{
+ index = "_ti" + scope._index;
+$$
+var ^^=index$$;
+^^
+}
+$$
+for(^^=index$$ = 0; ^^=index$$ < ^^=array$$.length; ^^=index$$++){
+	^^=~argv.element$$ = ^^=array$$[^^=index$$];
+	^^=~argv.content$$
+}
