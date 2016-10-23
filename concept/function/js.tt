@@ -1,13 +1,13 @@
 function(^^=~['arguments', argv.args]$$){
 ^^
+if(!argv.content) argv.content = ['paragraph', {content: []}]
+var content = argv.content[1].content;
 for(var key in argv.args){
  var cfg = argv.args[key];
  if(cfg.default){
-	argv.content.unshift(['default', [key, cfg.default]])
+	content.unshift(['default', [key, cfg.default]])
  }
 }
 $$
-^^if(argv.content){$$
 	^^=~argv.content$$
-^^}$$
 }
