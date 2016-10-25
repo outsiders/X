@@ -1,6 +1,5 @@
-a = 1;
-print a;
-
-b = @x:number x;
-b 1;
-
+`
+project "A";
+setlang nodejs
+`
+print 1

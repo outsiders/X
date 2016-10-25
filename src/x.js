@@ -28,9 +28,6 @@ function X(config){
 	self.keyCounts = {};//for default instance
 	self.deps = {};
 	if(!config.dispDir) config.dispDir = path.resolve(__dirname + "/..");
-//	if(!config.projectDir) config.projectDir = ".";
-//	if(!config.targetDir) config.targetDir = ".";
-//	if(!config.baseDir) config.baseDir = config.projectDir;
 	if(!config.deps) config.deps = {};
 	
 	self.global = {
@@ -39,7 +36,8 @@ function X(config){
 	};
 	self.scope = {
 		_indent: "",
-		_index: 0
+		_index: 0,
+		_lang: "lang"
 	};
 	self.scopes= [self.scope];
 	self.scopeIndex = 1;
@@ -50,11 +48,10 @@ function X(config){
 	self.tab = "index";
 	self.parser.parser.yy= {
 		scope: self.scope,
-		setlang: function(lang){
-			self.scope._lang = lang;
-			if(lang == "python")
-				self.scope._file = self.tab + ".py";
-			
+		eval: function(ast){
+			var es = self.normalize(ast, self.scope);
+			self.eval(es, self.scope);
+			return;
 		}
 	}
 /*
@@ -69,31 +66,34 @@ function X(config){
 X.prototype.start = function(main, argv){
 	var self = this;
 	var config = self.global.config;
-	if(!config.targetDir) config.targetDir = path.dirname(main);
+
 	self.global.argv = argv || [];
 	self.tab = path.basename(main).replace(/\.x/, "");
+	if(!config.targetDir) 
+		config.targetDir = path.dirname(main) + "/" + self.tab;
 // first step parse ast
 	var ast = self.parse(fs.readFileSync(main).toString());
-	log.i("parse done");
+//	log.i("parse done");
 //	log.i(ast);
 // then normalize ast
 	var es = self.normalize(ast, self.scope);
-	log.i("normalize done");
+//	log.i("normalize done");
 /*
 	console.log(JSON.stringify(es, function(k, v){
 		if(k == "scope") return;
 		return v;
 	}, 2));
 */
-	if(!self.scope._lang)
-		self.scope._lang = "nodejs"
-	if(!self.scope._file)
-		self.scope._file = self.tab + ".js"
+
 // finally eval 
 	var result = self.eval(es, self.scope);
-	log.i("eval done");
-	self.writefile();
-	log.i("writefile done");
+//	log.i("eval done");
+	if(self.scope._lang != "lang"){
+		self.writefile();
+		console.log("Write files:");
+		console.log(Object.keys(self.filelist));
+	}
+//	log.i("writefile done");
 }
 
 X.prototype.parse = function(str){
@@ -112,7 +112,6 @@ X.prototype.gettype = function(id, scope){
 X.prototype.istype = function(stc, ttype, scope){
 	var self = this;
 	var cdd;
-
 	if(typeof stc == "string") cdd = stc;
 	else if(stc[2]) cdd = stc[2];
 	else cdd = stc[0];
@@ -123,10 +122,10 @@ X.prototype.istype = function(stc, ttype, scope){
 		iddef = self.access(stc, scope);
 	else 
 		iddef = self.access(cdd, scope);
-	if(!iddef || !iddef.type) return false;
-	if(self.istype(iddef.type, ttype, scope)) return iddef;
-	if(iddef.deps){
-		for(var key in iddef.deps){
+	if(!iddef) return false;
+	if(iddef.type && self.istype(iddef.type, ttype, scope)) return iddef;
+	if(iddef.def.deps){
+		for(var key in iddef.def.deps){
 			if(self.istype(key, ttype, scope))	return iddef;
 		}
 	}
@@ -157,7 +156,7 @@ X.prototype.normalize = function(ast, scope, nconfig){
 	var id = ast[0];
 	if(id[0] !== "_"){
 		log.e(id);
-		throw "wrong id to normalize "+id;
+		process.exit();
 	}
 	var options = ast[1];
 	switch(id){
@@ -270,6 +269,22 @@ X.prototype.access = function(options, scope){
 
 X.prototype.require = function(xfile){
 	var self = this;
+	var newscope = {
+		_parent: self.scope,
+		_indent: "",
+		_index: self.scopeIndex,
+		_lang: "nodejs_code"
+	};
+	self.scopes.push(newscope);
+	self.scopeIndex ++;
+	var ast = self.parse(fs.readFileSync(xfile).toString());
+	var es = self.normalize(ast, newscope);
+	var result = self.eval(es, newscope);
+	var hash = self.eval(self.getfinalstr(result));
+	
+}
+X.prototype.getfinalstr = function(str){
+	return str.replace(/\*i\*(\s+)\*\*\*/g, "\n$1");
 }
 X.prototype.getxid = function(id){
 	var self = this;
@@ -288,6 +303,7 @@ X.prototype.getxid = function(id){
 	}
 //	console.log(xfile);
 	var ast = self.parse(fs.readFileSync(xfile).toString());
+//	log.i(ast);
 	var tmpresult = self.normalize(ast, {});
 //['definiton' ,{}]	
 	tmpresult.scope = {};
@@ -372,7 +388,7 @@ X.prototype.sentence = function(options, scope, doconfig){
 			}
 		}
 	}
-	if(!iddef){	
+	if(!iddef){
 		return options.content[0];
 		log.e(options);
 		throw options;
@@ -409,7 +425,7 @@ X.prototype.sentence = function(options, scope, doconfig){
 			}
 			if(!used){
 				log.i(ne);
-				log.i(iddef);
+				log.i(iddef.id);
 				throw "wrong param for function";
 			}
 		}
@@ -432,8 +448,7 @@ X.prototype.writefile = function(){
 	for(var key in self.filelist){
 		var tfilename = self.global.config.targetDir + "/" + key;
 		var config = self.filelist[key];
-		
-		var str = config.content.replace(/\*i\*(\s+)\*\*\*/g, "\n$1");
+		var str = self.getfinalstr(config.content);
 
 		libFile.mkdirpSync(path.dirname(tfilename)); //to be acc
 		if(fs.existsSync(tfilename))
@@ -542,40 +557,58 @@ X.prototype.gen = function(ast, lang, scope, genconfig){
 	var id = ast[0];
 	if(!genconfig) genconfig = {};
 	var rtn;
-
 	var langconfig = self.access(lang, scope);
-
-	if(!genconfig.super){
-		var ttfile = config.dispDir + "/concept/" + id + "/" + lang + ".tt";
-		if(fs.existsSync(ttfile)){
-			var str = tmpl.render({
-				file: ttfile,
-				extend: {
-					eval: function(ast, config){
-						if(ast == undefined) return "";
-						if(!config) config = {};
-						if(typeof ast != "object"){
-							if(config.mark) return config.mark+ast +config.mark;
-							return ast;
-						}
-						if(typeof ast[0] != "string"){
-							var str = "";
-							for(var i in ast){
-								if(i != 0 && ast.length > 1) str += (config.sep || ", ");
-								str += self.eval(ast[i], scope);	
-							}
-							return str;
-						}
-						var tmp = self.eval(ast, scope);
-						return tmp;
-					},
-					regfile: function(filename, config){
-						return self.regfile(filename, config);;
-					},
-					super: function(){
-						return self.gen(ast, lang, scope, {super:1});
-					}
+	var folder = config.dispDir + "/concept/" + id + "/" + lang;
+//	console.log("!"+id+"!"+lang);	
+//	console.log(genconfig);	
+	var extend = {
+		eval: function(ast, config){
+			if(ast == undefined) return "";
+			if(!config) config = {};
+			if(typeof ast != "object"){
+				if(config.mark) return config.mark+ast +config.mark;
+				return ast;
+			}
+			var tmpscope;
+			if(config.lang){
+				for(var key in scope){
+					tmpscope[key] = scope[key];								
 				}
+				tmpscope._lang = config.lang;
+			}else{
+				tmpscope = scope;
+			}
+			if(typeof ast[0] != "string"){
+				var str = "";
+				for(var i in ast){
+					if(i != 0 && ast.length > 1) str += (config.sep || ", ");
+					str += self.eval(ast[i], tmpscope);	
+				}
+				return str;
+			}
+			var tmp = self.eval(ast, tmpscope);
+			return tmp;
+		},
+		regfile: function(filename, config){
+			if(typeof config == "string")
+				config = {content: config};
+			return self.regfile(filename, config);;
+		},
+		render: function(filename, tscope){			
+			return tmpl.render({
+				file: folder + "/" + filename + ".tt",
+				extend: extend
+			}, tscope);
+		},
+		super: function(){
+			return self.gen(ast, lang, scope, {super:1});
+		}
+	}
+	if(!genconfig.super){
+		if(fs.existsSync(folder+".tt")){
+			var str = tmpl.render({
+				file: folder+".tt",
+				extend: extend
 			}, {
 				id: genconfig.id || ast[0],
 				argv: ast[1],
@@ -592,34 +625,36 @@ X.prototype.gen = function(ast, lang, scope, genconfig){
 			if(self.istype(key, "type", scope)) continue;
 			var newgenconfig = {notgenparentid: 1};
 			if(genconfig.id) newgenconfig.id = genconfig.id;
+			if(genconfig.lang) newgenconfig.lang = genconfig.lang;
 			rtn = self.gen(ast, key, scope, newgenconfig);
 			if(rtn !== undefined) return rtn;
 		}
 	}
-	if(!genconfig.notgenparentid){
-		var xconfig = self.access(ast[0], scope);
-		if(xconfig.deps){
-			for(var key in xconfig.deps){
-				rtn = self.gen([key, ast[1]], lang, scope, {id: genconfig.id || ast[0]});
-				if(rtn !== undefined) return rtn;
-			}
-		}
-	}
-	
-
-// try generate using lang but failed, using default
-
 	var idconfig = self.access(id, scope);
 	if(!idconfig){
 		throw "no id: "+id;
 	}
-	if(idconfig.local){
-		return self.eval(["call", {id: ast[0], param: ast[1]}], scope);
-	}else{
-		log.e("Please implement: concept/" + idconfig.id + "/"+ lang +".tt");
-		throw "error";
-	}
+	if(!genconfig.notgenparentid){
+		if(idconfig.def){
+			for(var key in idconfig.def.deps){
+				rtn = self.gen([key, ast[1]], lang, scope, {
+					id: genconfig.id || ast[0],
+					lang: genconfig.lang || lang
+				});
+				if(rtn !== undefined) return rtn;
+			}
+		}
 
+
+// try generate using lang but failed, using default
+
+		if(idconfig.local){
+			return self.eval(["call", {id: ast[0], param: ast[1]}], scope);
+		}else{
+			log.e("Please implement: concept/" + (genconfig.id || id) + "/"+ (genconfig.lang || lang) +".tt");
+			throw "error";
+		}
+	}
 	if(idconfig.local){
 //todo call or value or ref etc
 		return self.eval(["call", {id: ast[0], param: ast[1]}], scope);

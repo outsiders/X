@@ -4,7 +4,7 @@ var grammar = {
   "lex": {
     "macros": {
       "digit": "[0-9]",
-			"letter": "[a-zA-Z]",
+			"letter": "[a-zA-Z_]",
       "esc": "\\\\",
       "int": "-?(?:[0-9]|[1-9][0-9]+)",
       "exp": "(?:[eE][-+]?[0-9]+)",
@@ -75,7 +75,8 @@ var grammar = {
   "start": "Artical",
   "bnf": {
 		"Artical": [["Paragraph", "return $$ = ['_main', $1]"],
-								["Definition", "return $$ = $1;"]
+								["Definition", "return $$ = $1;"],
+								["Internal Paragraph", "return $$ = ['_main', $2];"]
 							 ],
 		"Id": [[ "ID", "$$ = yytext"]],
 		"Property": [[ "PROPERTY", "$$ = yytext"]],
@@ -89,8 +90,7 @@ var grammar = {
 		"Sentence": [["Units", "$$ = $1;"],
 								 ["Assign", "$$ = $1;"],
 								 ["For", "$$ = $1;"],
-								 ["If", "$$ = $1;"],
-								 ["Internal", "$$ = $1"]
+								 ["If", "$$ = $1;"]
 								],
 		"For": [["FOR ( Sentence ; Sentence ; Sentence ) FunctionBlock", "$$ = ['_for', {start: $3, end: $5, inc: $7, content: $9}]"],
 						["FOR Assignable ArrayUnit FunctionBlock", "$$ = ['_foreach', {array: $3, element: $2, content: $4}]"],
@@ -99,7 +99,7 @@ var grammar = {
 		"If": [["IF Unit FunctionBlock", "$$=['_if', {condition:$2, content:$3}]"],
 					 ["IF Unit FunctionBlock ELSE FunctionBlock", "$$=['_if',{condition: $2, content: $3, else: $5}]"]
 					],
-		"Internal": [[ "` Id `", "yy.setlang($2); $$ = undefined"]],
+		"Internal": [[ "` Paragraph `", "yy.eval($2[1]); $$ = undefined"]],
 		"Units": [["Unit", "$$ = ['_sentence', {config:{},content: [$1]}];"],
 							["Units Unit", "$$ = $1; $1[1].content.push($2)"],
 							["PropertyUnit", "var tmp = {}; tmp[$1[0]] = $1[1];$$ = ['_sentence', {config: tmp, content: []}];"],
@@ -125,7 +125,9 @@ var grammar = {
 							["String", "$$ = $1"],
 							["Number", "$$ = $1"]
 						 ],
-		"PropertyUnit": [["Property Unit", "$$ = [$1, $2]"]],
+		"PropertyUnit": [["Property Unit", "$$ = [$1, $2]"],
+										 ["String : Unit", "$$ = [$1, $3]"]
+										],
 		"Assignable": [["Id", "$$ = ['_access', [$1]]"], 
 									 ["( Units ) . Id", "$$ = ['_access', [$2, $5]]"],
 									 ["Assignable . Id", "$$ = ['_access', [$1, $3]]"],

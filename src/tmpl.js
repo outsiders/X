@@ -132,7 +132,7 @@ function render(config, data){
 		try{
 			eval(evalstr);
 		}catch(e){
-			log.i(evalstr);
+//			log.i(evalstr);
 			log.i(config.file);
 			eval(evalstr);
 			return "";

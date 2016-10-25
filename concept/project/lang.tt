@@ -1,0 +1,2 @@
+^^scope._name = $.eval(argv.name);$$
+^^scope._version = $.eval(argv.version);$$

@@ -1,0 +1,10 @@
+{
+	"name": "^^=local._name || 'x'$$",
+	"version": "^^=local._version || '0.1'$$",
+	"dependencies": {
+^^var lastkey;if(local._deps) lastkey = local._deps[local._deps.length-1];$$
+^^for(var key in local._deps){$$
+		"^^=key$$": "*"^^if(key != lastkey){$$,^^}$$
+^^}$$
+	}
+}

@@ -1,0 +1,4 @@
+^^
+$.regfile("package.json", $.render("package.json", scope));
+$.regfile("index.js", $.eval(argv));
+$$

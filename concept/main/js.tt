@@ -1,1 +1,1 @@
-^^$.regfile("index.js", {content: $.eval(argv)})$$
+^^$.regfile("main.js", {content: $.eval(argv)})$$
