@@ -2,4 +2,5 @@
 project "A";
 setlang nodejs
 `
-print 1
+a = md5.encode "abc";
+print a;

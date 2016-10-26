@@ -23,7 +23,7 @@ var grammar = {
       ["{sp}\'(?:{esc}[\'bfnrt/{esc}]|{esc}u[a-fA-F0-9]{4}|[^\'{esc}])*\'{sp}",
 			 "yytext = yytext.replace(/^\\s*\'/, '').replace(/\'\\s*$/, ''); return 'STRING';"],
 			["{sp}\\$?{letter}({letter}|{digit})*{sp}\\:", 
-			 "yytext = yytext.replace(/\\s/g, '').substr(0,yyleng-1); return 'PROPERTY'"],
+			 "yytext = yytext.replace(/^\\s*/, '').replace(/\\s*\:$/g, ''); return 'PROPERTY'"],
 			["{sp}\\$?{letter}({letter}|{digit})*{sp}", 
 			 "yytext = yytext.replace(/\\s/g, '');return 'ID'"],
       ["{sp}\\.{sp}", "return '.'"],

@@ -746,7 +746,7 @@ case 5:yy_.yytext = yy_.yytext.replace(/^\s*"/, '').replace(/"\s*$/, ''); return
 break;
 case 6:yy_.yytext = yy_.yytext.replace(/^\s*'/, '').replace(/'\s*$/, ''); return 14;
 break;
-case 7:yy_.yytext = yy_.yytext.replace(/\s/g, '').substr(0,yy_.yyleng-1); return 10
+case 7:yy_.yytext = yy_.yytext.replace(/^\s*/, '').replace(/\s*:$/g, ''); return 10
 break;
 case 8:yy_.yytext = yy_.yytext.replace(/\s/g, '');return 8
 break;

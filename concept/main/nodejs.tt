@@ -1,4 +1,5 @@
 ^^
-$.regfile("package.json", $.render("package.json", scope));
+$.regfile("package.json", $.render("package.json"));
 $.regfile("index.js", $.eval(argv));
+$.regfile("lib.js", $.load("exports"));
 $$

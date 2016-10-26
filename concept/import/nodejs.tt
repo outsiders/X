@@ -1,0 +1,3 @@
+^^if(argv.local){$$
+require("./^^=argv.local$$")^^}else if(argv.lib){$$
+require("^^=argv.lib$$")^^}$$^^if(argv.property){$$.^^=argv.property$$^^}$$

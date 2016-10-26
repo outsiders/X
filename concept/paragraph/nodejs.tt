@@ -1,0 +1,12 @@
+^^var str = $.super()$$
+^^
+for(var key in scope){
+ if(scope[key].import){
+  var it = scope[key].import;
+$$
+var ^^=key$$ = ^^=~['import', it]$$;
+^^
+ }
+}
+$$
+^^=str$$

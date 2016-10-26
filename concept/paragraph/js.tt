@@ -1,7 +1,7 @@
 ^^
 var keys = [];
 for(var key in scope){
- if(key[0] != "_" && !scope[key].defined)
+ if(key[0] != "_" && !scope[key].defined && !scope[key].islib)
   keys.push(key);
 }
 $$
