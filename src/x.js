@@ -97,7 +97,7 @@ X.prototype.istype = function(stc, ttype, scope){
 	if(typeof stc == "string") cdd = stc;
 	else if(stc[2]) cdd = stc[2];
 	else cdd = stc[0];
-
+		
 	if(cdd == ttype) return self.access(cdd, scope);;
 	var iddef;
 	if(stc[0] == "access")
@@ -106,6 +106,7 @@ X.prototype.istype = function(stc, ttype, scope){
 		iddef = self.access(cdd, scope);
 	if(!iddef) return false;
 	if(iddef.type && self.istype(iddef.type, ttype, scope)) return iddef;
+	if(!iddef.def) return false;
 	if(iddef.def.deps){
 		for(var key in iddef.def.deps){
 			if(self.istype(key, ttype, scope))	return iddef;
@@ -137,7 +138,7 @@ X.prototype.normalize = function(ast, scope, nconfig){
 	if(!nconfig) nconfig = {};
 	var id = ast[0];
 	if(id[0] !== "_"){
-		log.e(id);
+		log.e(ast);
 		process.exit();
 	}
 	var options = ast[1];
@@ -169,10 +170,13 @@ X.prototype.normalize = function(ast, scope, nconfig){
 				options[ol] = ['return', options[ol]];
 		}
 		return ['paragraph', {content: options, scope: newscope}];
-	case "_add": 
-		return ['add', self.normalize(options, scope)];
-	case "_lt": 
-		return ['lt', self.normalize(options, scope)];
+	case "_op": 
+		return [
+			options[0], {
+				left: self.normalize(options[1], scope),
+				right: self.normalize(options[2], scope)
+			}
+		];
 	case "_for": 
 		return ['for', {
 			start: self.normalize(options.start, scope),
@@ -214,6 +218,7 @@ X.prototype.normalize = function(ast, scope, nconfig){
 			id: self.normalize(options[0], scope), 
 			property: self.normalize(options[1], scope)
 		};
+		self.access(["access", param], scope);
 		return ["access", param];
 	case "_assign":
 		return self.assign(options, scope, nconfig);
@@ -240,13 +245,26 @@ X.prototype.access = function(options, scope){
 				return pscope[options];
 		}
 		var iddef = self.getxid(options);
-		return iddef;
+		if(iddef)
+			return iddef;
+		scope[options] = {
+			scope: {_parent: scope, _index: self.scopeIndex},
+			id: options
+		}
+		self.scopes.push(scope[options].scope);
+		self.scopeIndex ++;
+		return scope[options];
 	}
 	if(options[0] != "access"){
 		return options;
 	}
 	var parentdef = self.access(options[1].id, scope);
 	if(options[1].property){
+		if(!parentdef.scope) {
+			log.i(options);
+			log.e(parentdef);
+			process.exit();
+		}
 		return self.access(options[1].property, parentdef.scope);
 	}else{
 		return parentdef;
@@ -303,16 +321,16 @@ X.prototype.getxid = function(id){
 				iddef.def.args[key2] = parentdef.def.args[key2];
 		}
 	}
-	if(self.istype(id, "class", {})){
+	if(self.istype(id, "object", {})){
+		//TODO
+	}else if(self.istype(id, "entity", {})){
 		for(var key in iddef.def.args){
 			var argdef = iddef.def.args[key];
-			if(argdef.type){
-				iddef.scope[key] = {
-					type: argdef.type,
-					scope: {_parent: iddef.scope},
-					id: id + "." + key
-				}
-			}
+			var tar = iddef.scope[key] = {
+				scope: {_parent: iddef.scope},
+				id: id + "." + key
+			};
+			if(argdef.type) tar.type = argdef.type;
 			if(argdef.default){
 				self.setscope(key, argdef.default, iddef.scope);
 			}
@@ -324,7 +342,6 @@ X.prototype.setscope = function(options, toset, scope, config){
 	var self = this;
 	if(!config) config = {};
 	if(typeof options == "string"){
-		
 		var t;
 		if(!config.islib){
 			t = self.access(options, scope);
@@ -347,7 +364,7 @@ X.prototype.setscope = function(options, toset, scope, config){
 			if(self.istype(toset[2], "object", scope)){
 //				for(var key in 
 //				scope[options].scope
-				var classdef = self.access(toset[1].class, scope);
+				var classdef = self.access(toset[2][1].class, scope);
 				for(var key in classdef.def.args){
 					t.scope[key] = classdef.def.args[key];
 				}
@@ -399,14 +416,14 @@ X.prototype.sentence = function(options, scope, doconfig){
 		throw options;
 	}
 
-	if(iddef.type != "function"){
+	if(mainindex == -1){
 		if(options.content.length > 1) throw "error!!!!!";
 		return options.content[0];
 	}
 
 	var param = options.config;
 	for(var key in param){
-		param[key] = self.normalize(param[key]);
+		param[key] = self.normalize(param[key], scope);
 	}
 	for(var i in options.content){
 		if(i == mainindex) continue;
@@ -443,8 +460,13 @@ X.prototype.sentence = function(options, scope, doconfig){
 			if(arg.required && !param[key]) 
 				throw "require "+ key;
 		}
-		if(iddef.def.return) 
+		if(self.istype(iddef.type, "class", scope)){
+			return [iddef.id, param, ["object", {
+				class: iddef.id
+			}]];
+		}else if(iddef.def.return){
 			return [iddef.id, param, iddef.def.return];
+		}
 	}
 	return [iddef.id, param];
 	
@@ -475,11 +497,16 @@ X.prototype.regfile = function(filename, config){
 	var self = this;
 	var rfile = path.relative(".", filename);
 	if(!self.filelist[rfile]){
-		self.filelist[rfile] = config;
-		self.filelist[rfile].content = config.content;
-	}else{
-		self.filelist[rfile].content += config.content;
+		self.filelist[rfile] = {};
 	}
+	var tar = self.filelist[rfile];
+	if(config.content){
+		if(!tar.content)
+			tar.content = config.content;
+		else
+			tar.content += config.content;
+	}
+//	if(config.
 	return 1;
 }
 X.prototype.x2jsobj = function(ast){
@@ -516,9 +543,9 @@ X.prototype.eval = function(ast, scope){
 	var self = this;
 	var rtn;
 	if(!ast) return "";
-	if(typeof ast != "object") {log.e(ast); throw ast;}
+	if(typeof ast != "object") {log.e(ast); process.exit()}
 	if(typeof ast[0] !== "string"){
-		if(!libObject.isArray(ast)) {log.e(ast); throw ast;}
+		if(!libObject.isArray(ast)) {log.e(ast); process.exit()}
 		for(var i in ast){
 			self.eval(ast[i], scope);
 		}
@@ -627,6 +654,27 @@ X.prototype.gen = function(ast, lang, scope, genconfig){
 			if(!scope[flag]) scope[flag] = {};
 			scope[flag].import = expr;
 		},
+		regobj: function(config){
+			if(!self.scope["_"+id]){
+				self.scope["_"+id] = {};
+				self.scope["_"+id+"_count"] = 0;
+			}
+			self.scope["_"+id+"_count"]++;
+			var tar = self.scope["_"+id];
+			var c = self.scope["_"+id+"_count"];
+			if(!config.name){
+				if(c == 1){
+					config.name = id;
+				}else if(c == 2){
+					config.name = "id"+c;
+					tar[id+"1"] = tar[id];
+					delete tar[id];
+				}else{
+					config.name = "id"+c;
+				}
+			}
+			tar[config.name] = config;
+		},
 		super: function(){
 			return self.gen(ast, lang, scope, {super:1});
 		}
@@ -664,7 +712,7 @@ X.prototype.gen = function(ast, lang, scope, genconfig){
 	if(!genconfig.notgenparentid){
 		if(idconfig.def){
 			for(var key in idconfig.def.deps){
-				if(key == "function") continue;
+				if(key == "function" || key == "class") continue;
 				rtn = self.gen([key, ast[1]], lang, scope, {
 					id: genconfig.id || ast[0],
 					lang: genconfig.lang || lang
@@ -674,14 +722,17 @@ X.prototype.gen = function(ast, lang, scope, genconfig){
 		}
 
 // try generate using lang but failed, using default
-
-		if(idconfig.local){
-			return self.eval(["call", {id: ast[0], param: ast[1]}], scope);
-		}
 		var m = id.match(/^(\S+)\.([^\.]+)$/);
 		if(m){
 			self.eval([m[1]], scope);
-			return self.eval(["call", {id: ast[0], param: ast[1]}], scope);
+		}
+		if(idconfig.local || m){
+			if(self.istype(idconfig.type, "class", {})){
+				return self.eval(["new", {class: ast[0], param: ast[1]}], scope);
+			}
+			if(self.istype(idconfig.type, "function", {})){
+				return self.eval(["call", {id: ast[0], param: ast[1]}], scope);
+			}
 		}
 		log.e("Please implement: concept/" + (genconfig.id || id) + "/"+ (genconfig.lang || lang) +".tt");
 			throw "error";

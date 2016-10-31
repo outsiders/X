@@ -141,7 +141,7 @@ case 23:
 this.$ = $$[$0-1]; $$[$0-1][1].content.push($$[$0])
 break;
 case 24:
-var tmp = {}; tmp[$$[$0][0]] = $$[$0][1];this.$ = ['_sentence', {config: tmp, content: []}];
+this.$ = ['_sentence', {config: {}, content: []}]; this.$[1].config[$$[$0][0]] = $$[$0][1];
 break;
 case 25:
 this.$ = $$[$0-1]; $$[$0-1][1].config[$$[$0][0]] = $$[$0][1]
@@ -153,7 +153,7 @@ case 28:
 this.$ = ['_assign', [$$[$0-2], $$[$0]]]
 break;
 case 29:
-this.$ = ['_assign', [$$[$0-2], ['_add', [$$[$0-2], $$[$0]]]]];
+this.$ = ['_assign', [$$[$0-2], ['_op', ['add', $$[$0-2], $$[$0]]]]];
 break;
 case 30: case 31: case 39: case 40: case 41: case 48: case 49:
 this.$ = $$[$0]
@@ -249,10 +249,10 @@ case 72:
 this.$=$$[$0-2]; this.$[$$[$0][0]] = $$[$0][1]
 break;
 case 73:
-this.$ = ['_add', [$$[$0-2], $$[$0]]]
+this.$ = ['_op', ['add', $$[$0-2], $$[$0]]]
 break;
 case 74:
-this.$ = ['_lt', [$$[$0-2], $$[$0]]]
+this.$ = ['_op', ['lt', $$[$0-2], $$[$0]]]
 break;
 }
 },

@@ -1,1 +1,1 @@
-:type @constructor: *
+@constructor: *

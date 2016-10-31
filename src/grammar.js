@@ -102,13 +102,13 @@ var grammar = {
 		"Internal": [[ "` Paragraph `", "yy.eval($2[1]); $$ = undefined"]],
 		"Units": [["Unit", "$$ = ['_sentence', {config:{},content: [$1]}];"],
 							["Units Unit", "$$ = $1; $1[1].content.push($2)"],
-							["PropertyUnit", "var tmp = {}; tmp[$1[0]] = $1[1];$$ = ['_sentence', {config: tmp, content: []}];"],
+							["PropertyUnit", "$$ = ['_sentence', {config: {}, content: []}]; $$[1].config[$1[0]] = $1[1];"],
 							["Units PropertyUnit", "$$ = $1; $1[1].config[$2[0]] = $2[1]"]
 						 ],
 		"Assign": [["Assignable = Units", "$$ = ['_assign', [$1, $3]];"],
 							 ["Array = Units", "$$ = ['_assign', [$1, $3]];"],
 							 ["Assignable = Definition", "$$ = ['_assign', [$1, $3]]"],
-							 ["Assignable += Units", "$$ = ['_assign', [$1, ['_add', [$1, $3]]]];"]
+							 ["Assignable += Units", "$$ = ['_assign', [$1, ['_op', ['add', $1, $3]]]];"]
 							],
 		"Unit": [["Value", "$$ = $1"],
 						 ["Assignable", "$$ = $1"],
@@ -165,8 +165,8 @@ var grammar = {
 		"ArgumentArray": [["ArgumentElement", "$$={}; $$[$1[0]] = $1[1];"],
 											["ArgumentArray , ArgumentElement", "$$=$1; $$[$3[0]] = $3[1]"]
 											],
-		"Operation": [["Unit + Unit", "$$ = ['_add', [$1, $3]]"],
-									["Unit < Unit", "$$ = ['_lt', [$1, $3]]"]
+		"Operation": [["Unit + Unit", "$$ = ['_op', ['add', $1, $3]]"],
+									["Unit < Unit", "$$ = ['_op', ['lt', $1, $3]]"]
 								 ]
   }
 };

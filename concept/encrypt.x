@@ -1,3 +1,3 @@
-:class @
- encode : function ? ( @content:string, secret: string), 
- decode : function ? ( @content:string, secret: string)
+:entity @
+ encode? (@content:string, secret:string), 
+ decode? (@content:string, secret:string)

@@ -1,3 +1,4 @@
+`setlang nodejs`
 a = 1;
 a;
 
@@ -9,7 +10,7 @@ c x:1;
 b (c);
 
 d = :class @x:number?1;
-e = new d;
+e = d;
 e.x;
-f = new d 2;
+f = d 2;
 f.x
