@@ -1,1 +1,7 @@
-^^=~argv.id$$^^if(argv.property){$$[^^=~argv.property, {mark:'"'}$$]^^}$$
+^^
+var tscope = $.access(['access', argv]);
+if(tscope.hasOwnProperty('value')){
+ callback(tscope.value);
+}else{
+$$
+^^=~tscope.id$$^^}$$

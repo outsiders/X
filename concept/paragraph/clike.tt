@@ -1,3 +1,6 @@
-^^for(var i in argv.content){$$
-^^=~argv.content[i]$$;
-^^}$$
+^^for(var i in argv.content){
+ var tmp = $.eval(argv.content[i]);
+ if(tmp){
+$$
+^^=tmp$$;
+^^}}$$

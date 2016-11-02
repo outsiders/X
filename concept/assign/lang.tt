@@ -1,0 +1,4 @@
+^^
+var tscope = $.access(argv[0]);
+tscope.value = $.eval(argv[1]);
+$$

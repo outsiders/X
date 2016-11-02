@@ -1,1 +1,1 @@
-:kit
+:console

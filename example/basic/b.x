@@ -1,4 +1,4 @@
-`setlang nodejs`
+`set nodejs`
 a = 1;
 a;
 

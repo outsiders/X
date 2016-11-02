@@ -1,2 +1,1 @@
-:class @
-	start: function
+:service

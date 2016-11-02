@@ -1,4 +1,4 @@
-`setlang nodejs`
+`set nodejs`
 print "a";
 a = "x";
 print a;

@@ -1,0 +1,3 @@
+^^if($.istype(argv.left, "string") || $.istype(argv.right, "string")){$$
+^^=~argv.left$$ == ^^=~argv.right$$^^}else{$$
+^^=~argv.left$$ -eq ^^=~argv.right$$^^}$$

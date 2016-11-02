@@ -75,7 +75,10 @@ function render(config, data){
 	var local = data;
 	var p=[];
 	var win, wout;
-
+	var _result;
+	var callback = function(obj){
+		_result = obj;
+	};
 	var evalstr = "p.push('";
 	var originstr = config.str.replace(/\r/g,"");
 	with(data){
@@ -138,6 +141,9 @@ function render(config, data){
 			return "";
 
 		}
+	}
+	if(_result){
+		return _result;
 	}
 	var rtstr = p.join('');
 	if(config.json){

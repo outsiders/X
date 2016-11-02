@@ -1,0 +1,7 @@
+^^
+var nhash = {};
+for(var key in argv){
+	nhash[key] = $.eval(argv[key]);
+}
+callback(nhash)
+$$

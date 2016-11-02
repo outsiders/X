@@ -1,6 +1,6 @@
 `
 project "A";
-setlang nodejs
+set nodejs
 `
 a = md5.encode "abc";
 print a;

@@ -1,1 +1,6 @@
-^^=~argv[0]$$ = ^^=~argv[1]$$
+^^var t = $.eval(argv[1]);
+if(typeof t != "string"){
+ $.super();
+}else{
+$$
+^^=~argv[0]$$ = ^^=t$$^^}$$

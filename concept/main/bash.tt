@@ -1,0 +1,1 @@
+^^$.regfile("run.sh", {content: $.eval(argv)})$$

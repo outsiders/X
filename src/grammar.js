@@ -33,6 +33,8 @@ var grammar = {
       ["{sp}\\]{sp}", "return ']'"],
       ["{sp}\\{{sp}", "return '{'"],
       ["{sp}\\}{sp}", "return '}'"],
+			["{sp}\\&\\&{sp}", "return '&&'"],
+			["{sp}\\|\\|{sp}", "return '||'"],
       ["{sp}\\&{sp}", "return '&'"],
       ["{sp}\\|{sp}", "return '|'"],
       ["{sp}\\@{sp}", "return '@'"],
@@ -40,6 +42,8 @@ var grammar = {
       ["{sp}>={sp}", "return '>='"],
       ["{sp}<={sp}", "return '<='"],
 			["{sp}=={sp}", "return '=='"],
+			["{sp}\\!={sp}", "return '!='"],
+      ["{sp}\\!{sp}", "return '!'"],
 			["{sp}\\+={sp}", "return '+='"],
 			["{sp}\\-={sp}", "return '-='"],
 			["{sp}\\*={sp}", "return '*='"],
@@ -52,30 +56,31 @@ var grammar = {
       ["{sp}<{sp}", "return '<'"],
 			["{sp}={sp}", "return '='"],
       ["{sp}\\?{sp}", "return '?'"],
+      ["{sp}\\%{sp}", "return '%'"],
       ["{sp}\\~{sp}", "return '~'"],
       ["{sp}\\`{sp}", "return '`'"],
       ["{sp}\\:{sp}", "return ':'"],
       ["{sp},{sp}", "return ','"],
       ["{sp};{sp}", "return ';'"]
-
     ]
   },
-  "tokens": "FOR IF ELSE STRING NUMBER PROPERTY ID . { } [ ] ( ) & | @ = _ + - * / > < == >= <= += -= *= /= ? ~ ` : , ; ",
+  "tokens": "FOR IF ELSE STRING NUMBER PROPERTY ID . { } [ ] ( ) & | && || @ = _ + - * / > < != == >= <= += -= *= /= ? ! % ~ ` : , ; ",
 	"operators": [
 		["left", ","],
-//		["left", "."],
-//		["right", "RIGHTOPERATORID"],
-//		["left", "LEFTOPERATORID"],
-    ["right", "="],
-    ["right", "+=", "-=", "*=", "/="],
-    ["left", "*", "/"],
+    ["right", "=", "+=", "-=", "*=", "/="],
+		["left", "||"],
+		["left", "&&"],
+		["left", "!=", "=="],
+		["left", "<", ">", "<=", ">="],
 		["left", "+", "-"],
-		["left", "<", ">", "<=", ">=", "=="]
+    ["left", "*", "/", "%"],
+		["right", "!"]
 	],
   "start": "Artical",
   "bnf": {
 		"Artical": [["Paragraph", "return $$ = ['_main', $1]"],
 								["Definition", "return $$ = $1;"],
+								["Internal", "return $$ = ['_main', []];"],
 								["Internal Paragraph", "return $$ = ['_main', $2];"]
 							 ],
 		"Id": [[ "ID", "$$ = yytext"]],
@@ -106,7 +111,9 @@ var grammar = {
 							["Units PropertyUnit", "$$ = $1; $1[1].config[$2[0]] = $2[1]"]
 						 ],
 		"Assign": [["Assignable = Units", "$$ = ['_assign', [$1, $3]];"],
+							 ["Assignable = Array", "$$ = ['_assign', [$1, $3]];"],
 							 ["Array = Units", "$$ = ['_assign', [$1, $3]];"],
+							 ["Array = Array", "$$ = ['_assign', [$1, $3]];"],
 							 ["Assignable = Definition", "$$ = ['_assign', [$1, $3]]"],
 							 ["Assignable += Units", "$$ = ['_assign', [$1, ['_op', ['add', $1, $3]]]];"]
 							],
@@ -166,7 +173,14 @@ var grammar = {
 											["ArgumentArray , ArgumentElement", "$$=$1; $$[$3[0]] = $3[1]"]
 											],
 		"Operation": [["Unit + Unit", "$$ = ['_op', ['add', $1, $3]]"],
-									["Unit < Unit", "$$ = ['_op', ['lt', $1, $3]]"]
+									["Unit < Unit", "$$ = ['_op', ['lt', $1, $3]]"],
+									["Unit > Unit", "$$ = ['_op', ['gt', $1, $3]]"],
+									["Unit == Unit", "$$ = ['_op', ['eq', $1, $3]]"],
+									["Unit >= Unit", "$$ = ['_op', ['ge', $1, $3]]"],
+									["Unit <= Unit", "$$ = ['_op', ['le', $1, $3]]"],
+									["Unit && Unit", "$$ = ['_op', ['and', $1, $3]]"],
+									["Unit || Unit", "$$ = ['_op', ['or', $1, $3]]"]
+
 								 ]
   }
 };
