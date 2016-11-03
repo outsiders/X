@@ -1,3 +1,3 @@
-`setlang web`
-a = server;
+`set expressjs`
+a = server port:1234;
 a.start

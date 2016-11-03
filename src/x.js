@@ -30,7 +30,8 @@ function X(config){
 		_index: 0,
 		_lang: "lang",
 		_root: 1,
-		_lib: {}
+		_libs: {},
+		_deps: {}
 	};
 	self.scopes= [self.scope];
 	self.scopeIndex = 1;
@@ -99,7 +100,6 @@ X.prototype.istype = function(stc, ttype, scope){
 	if(typeof stc == "string") cdd = stc;
 	else if(stc[2]) cdd = stc[2];
 	else cdd = stc[0];
-		
 	if(cdd == ttype) return self.access(cdd, scope);;
 	var iddef;
 	if(stc[0] == "access")
@@ -494,6 +494,7 @@ X.prototype.sentence = function(options, scope, doconfig){
 			if(!param[key])
 				param[key] = iddef.object.def[key];
 		}
+		param.object = iddef.object.id;
 	}
 	return [iddef.id, param];
 	
@@ -523,15 +524,16 @@ X.prototype.writefile = function(){
 X.prototype.regfile = function(filename, config){
 	var self = this;
 	var rfile = path.relative(".", filename);
+	if(typeof config == "string")
+		config = {content: config};
 	if(!self.filelist[rfile]){
 		self.filelist[rfile] = {};
 	}
 	var tar = self.filelist[rfile];
+	if(!tar.content)
+		tar.content = "";
 	if(config.content){
-		if(!tar.content)
-			tar.content = config.content;
-		else
-			tar.content += config.content;
+		tar.content += config.content;
 	}
 //	if(config.
 	return 1;
@@ -657,8 +659,6 @@ X.prototype.gen = function(ast, lang, scope, genconfig){
 			return tmp;
 		},
 		regfile: function(filename, config){
-			if(typeof config == "string")
-				config = {content: config};
 			return self.regfile(filename, config);;
 		},
 		istype: function(stc, ttype){
@@ -667,7 +667,7 @@ X.prototype.gen = function(ast, lang, scope, genconfig){
 		addlib: function(filename){
 			var iddef = self.getxid(id, scope);
 			iddef.import = {local: filename, property: id};
-			var libs = self.scope._lib;
+			var libs = self.scope._libs;
 			if(!libs[id]) libs[id] = ['render', folder + "/" + filename + ".tt"];
 		},
 		render: function(config, tscope){
@@ -689,15 +689,20 @@ X.prototype.gen = function(ast, lang, scope, genconfig){
 			}
 			return self.load(str);
 		},
-		import: function(flag, expr){
-			if(!expr) expr = {lib: flag};
-			if(typeof expr == "string"){
-				var exprtmp = {lib: flag, property: expr};	
-				flag = expr;
-				expr = exprtmp;
+		import: function(config){
+			if(typeof config == "string"){
+				config = {lib: config}
 			}
-			if(!scope[flag]) scope[flag] = {};
-			scope[flag].import = expr;
+			if(!config.var){
+				if(config.property) config.name = config.property;
+				else if(config.lib) config.name = config.lib;
+				else throw "not defined config.name";
+			}
+			if(!scope[config.name]) scope[config.name] = {};
+			scope[config.name].import = config;
+			if(config.lib){
+				self.scope._deps[config.lib] = 1;
+			}
 		},
 		regobj: function(config){
 			if(!self.scope["_"+id]){
@@ -761,13 +766,23 @@ X.prototype.gen = function(ast, lang, scope, genconfig){
 		}		
 	}
 */
-	var idconfig = self.access(id, scope);
-	if(!idconfig){
+
+	var m = id.match(/^(\S+)\.([^\.]+)$/);
+// for md5 TODO modify
+	if(m){
+		self.eval([m[1]], scope);
+	}	
+	var iddef;
+	if(m && ast[1].object)
+		iddef	= self.access(ast[1].object +"."+m[2], scope);		
+	else
+		iddef	= self.access(id, scope);
+	if(!iddef){
 		throw "no id: "+id;
 	}
 	if(!genconfig.notextendid){
-		if(idconfig.def){
-			for(var key in idconfig.def.deps){
+		if(iddef.def){
+			for(var key in iddef.def.deps){
 				if(key == "function" || key == "class") continue;
 				rtn = self.gen([key, ast[1]], genconfig.lang || lang, scope, {
 					id: genconfig.id || id,
@@ -776,19 +791,17 @@ X.prototype.gen = function(ast, lang, scope, genconfig){
 				if(rtn !== undefined) return rtn;
 			}
 		}
-
 // try generate using lang but failed, using default
-		var m = id.match(/^(\S+)\.([^\.]+)$/);
-		if(m){
-			self.eval([m[1]], scope);
-		}
-		if(idconfig.local || m){
-			if(self.istype(idconfig.type, "class", {})){
+		if(iddef.local || m){
+			console.log(ast);
+			console.log(id);
+			console.log(iddef);
+			if(self.istype(iddef.type, "class", {})){
 				return self.eval(["new", {class: ast[0], param: ast[1]}], scope);
 			}
-			if(self.istype(idconfig.type, "function", {})){
-				if(idconfig.objectid){
-					return self.eval(["call", {id: idconfig.objectid, param: ast[1]}], scope);
+			if(self.istype(iddef.type, "function", {})){
+				if(iddef.objectid){
+					return self.eval(["call", {id: iddef.objectid, param: ast[1]}], scope);
 				}
 				return self.eval(["call", {id: ast[0], param: ast[1]}], scope);
 			}
@@ -797,12 +810,12 @@ X.prototype.gen = function(ast, lang, scope, genconfig){
 			throw "error";
 	}
 /*
-	if(idconfig.local){
+	if(iddef.local){
 //todo call or value or ref etc
 		return self.eval(["call", {id: ast[0], param: ast[1]}], scope);
 	}else{
-		if(idconfig[id] && idconfig[id].content){
-			return self.eval(idconfig[id].content);
+		if(iddef[id] && iddef[id].content){
+			return self.eval(iddef[id].content);
 		}
 	}
 */

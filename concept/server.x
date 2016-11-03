@@ -1,1 +1,1 @@
-:service
+:service @port: int

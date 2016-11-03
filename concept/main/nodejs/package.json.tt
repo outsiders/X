@@ -1,9 +1,16 @@
+^^
+var _internal = {
+ "buffer": 1,
+ "crypto": 1,
+ "fs": 1
+}
+$$
 {
 	"name": "^^=local._name || 'x'$$",
 	"version": "^^=local._version || '0.1'$$",
 	"dependencies": {
 ^^var lastkey;if(local._deps) lastkey = local._deps[local._deps.length-1];$$
-^^for(var key in local._deps){$$
+^^for(var key in local._deps){if(_internal[key])continue;$$
 		"^^=key$$": "*"^^if(key != lastkey){$$,^^}$$
 ^^}$$
 	}

@@ -1,4 +1,4 @@
-^^for(var key in scope._parent._lib){$$
-^^=~scope._parent._lib[key]$$
+^^for(var key in scope._parent._libs){$$
+^^=~scope._parent._libs[key]$$
 module.exports["^^=key$$"] = ^^=key$$;
 ^^}$$

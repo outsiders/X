@@ -1,0 +1,8 @@
+^^
+$.import('http');
+$$
+http.createServer(^^=argv.object$$).listen(^^=~argv.port || 80$$, function(err){
+	if(!err){
+		console.log("Express http server listening on port: ^^=~argv.port || 80$$");
+	}
+})

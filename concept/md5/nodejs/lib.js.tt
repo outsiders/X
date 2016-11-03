@@ -1,5 +1,8 @@
 ^^
-$.import("buffer", "Buffer");
+$.import({
+ lib: "buffer", 
+ property: "Buffer"
+});
 $.import("crypto");
 $$
 var md5 = {
