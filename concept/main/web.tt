@@ -1,5 +1,6 @@
 ^^
-for(var key in server){
-	$.regfile(key, server[key]);
+var servers = $.getobj("server");
+for(var key in servers){
+	$.regfile(key, servers[key]);
 }
 $$

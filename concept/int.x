@@ -1,1 +1,1 @@
-:number
+&number

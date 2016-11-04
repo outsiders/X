@@ -9,7 +9,7 @@ c = ~number @x:number?1 x+1;
 c x:1;
 b (c);
 
-d = :class @x:number?1;
+d = &class @x:number?1;
 e = d;
 e.x;
 f = d 2;

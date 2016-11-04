@@ -1,1 +1,1 @@
-:root ~string
+&root ~string

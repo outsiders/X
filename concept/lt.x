@@ -1,1 +1,1 @@
-:operation ~boolean
+&operation ~boolean

@@ -1,1 +1,1 @@
-:root ~value @left, right
+&root ~value @left, right

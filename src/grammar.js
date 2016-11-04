@@ -26,19 +26,8 @@ var grammar = {
 			 "yytext = yytext.replace(/^\\s*/, '').replace(/\\s*\:$/g, ''); return 'PROPERTY'"],
 			["{sp}\\$?{letter}({letter}|{digit})*{sp}", 
 			 "yytext = yytext.replace(/\\s/g, '');return 'ID'"],
-      ["{sp}\\.{sp}", "return '.'"],
-      ["{sp}\\({sp}", "return '('"],
-      ["{sp}\\){sp}", "return ')'"],
-      ["{sp}\\[{sp}", "return '['"],
-      ["{sp}\\]{sp}", "return ']'"],
-      ["{sp}\\{{sp}", "return '{'"],
-      ["{sp}\\}{sp}", "return '}'"],
 			["{sp}\\&\\&{sp}", "return '&&'"],
 			["{sp}\\|\\|{sp}", "return '||'"],
-      ["{sp}\\&{sp}", "return '&'"],
-      ["{sp}\\|{sp}", "return '|'"],
-      ["{sp}\\@{sp}", "return '@'"],
-			["{sp}\\_{sp}", "return '_'"],
       ["{sp}>={sp}", "return '>='"],
       ["{sp}<={sp}", "return '<='"],
 			["{sp}=={sp}", "return '=='"],
@@ -48,6 +37,19 @@ var grammar = {
 			["{sp}\\-={sp}", "return '-='"],
 			["{sp}\\*={sp}", "return '*='"],
 			["{sp}\\/={sp}", "return '/='"],
+      ["{sp}->{sp}", "return '->'"],
+      ["{sp}=>{sp}", "return '=>'"],
+      ["{sp}\\&{sp}", "return '&'"],
+      ["{sp}\\|{sp}", "return '|'"],
+      ["{sp}\\@{sp}", "return '@'"],
+			["{sp}\\_{sp}", "return '_'"],
+      ["{sp}\\.{sp}", "return '.'"],
+      ["{sp}\\({sp}", "return '('"],
+      ["{sp}\\){sp}", "return ')'"],
+      ["{sp}\\[{sp}", "return '['"],
+      ["{sp}\\]{sp}", "return ']'"],
+      ["{sp}\\{{sp}", "return '{'"],
+      ["{sp}\\}{sp}", "return '}'"],
 			["{sp}\\+{sp}", "return '+'"],
 			["{sp}\\-{sp}", "return '-'"],
 			["{sp}\\*{sp}", "return '*'"],
@@ -64,7 +66,7 @@ var grammar = {
       ["{sp};{sp}", "return ';'"]
     ]
   },
-  "tokens": "FOR IF ELSE STRING NUMBER PROPERTY ID . { } [ ] ( ) & | && || @ = _ + - * / > < != == >= <= += -= *= /= ? ! % ~ ` : , ; ",
+  "tokens": "FOR IF ELSE STRING NUMBER PROPERTY ID . { } [ ] ( ) & | && || @ = _ + - * / > < != == >= <= += -= *= /= ? ! % ~ ` : , ; -> =>",
 	"operators": [
 		["left", ","],
     ["right", "=", "+=", "-=", "*=", "/="],
@@ -105,11 +107,14 @@ var grammar = {
 					 ["IF Unit FunctionBlock ELSE FunctionBlock", "$$=['_if',{condition: $2, content: $3, else: $5}]"]
 					],
 		"Internal": [[ "` Paragraph `", "yy.eval($2[1]); $$ = undefined"]],
-		"Units": [["Unit", "$$ = ['_sentence', {config:{},content: [$1]}];"],
-							["Units Unit", "$$ = $1; $1[1].content.push($2)"],
-							["PropertyUnit", "$$ = ['_sentence', {config: {}, content: []}]; $$[1].config[$1[0]] = $1[1];"],
-							["Units PropertyUnit", "$$ = $1; $1[1].config[$2[0]] = $2[1]"]
+		"Units": [["PreUnits", "$$ = $1"],
+							["PreUnits ContentDefinition", "$$ = $1; $1[1].content.push($2)"]
 						 ],
+		"PreUnits": [["Unit", "$$ = ['_sentence', {config:{},content: [$1]}];"],
+								 ["PreUnits Unit", "$$ = $1; $1[1].content.push($2)"],
+								 ["PropertyUnit", "$$ = ['_sentence', {config: {}, content: []}]; $$[1].config[$1[0]] = $1[1];"],
+								 ["PreUnits PropertyUnit", "$$ = $1; $1[1].config[$2[0]] = $2[1]"]
+								],
 		"Assign": [["Assignable = Units", "$$ = ['_assign', [$1, $3]];"],
 							 ["Assignable = Array", "$$ = ['_assign', [$1, $3]];"],
 							 ["Array = Units", "$$ = ['_assign', [$1, $3]];"],
@@ -124,9 +129,6 @@ var grammar = {
 						 ["( Definition )", "$$ = $2;"],
 						 ["{ Paragraph }", "$$ = $2;"]
 						],
-		"FunctionBlockOrNone": [["FunctionBlock", "$$= $1"],
-														["", "$$ = []"]
-													 ],
 		"FunctionBlock": [["Units", "var c = $1[1].content; if(c.length == 1 && c[0][0] == '_paragraph'){ $$ = c[0]; }else{ $$ = ['_paragraph', [$1]]; }"]],
 		"Value": [["Null", "$$ = $1"], 
 							["String", "$$ = $1"],
@@ -146,17 +148,21 @@ var grammar = {
 		"Array": [[" Unit , Unit", "$$ = ['_array', [$1, $3]]"],
 							[" Array , Unit",  "$$ = $1; $1[1].push($3)"]
 						 ],
-		"Call": [["& BasicUnit ", "$$ = ['_call', $2];"]],
-		"Definition": [["Dependencies ReturnStatement Arguments FunctionBlockOrNone", "$$ = ['_definiton', {deps: $1, return: $2, args: $3, content: $4}]"],
-									 ["Dependencies Arguments FunctionBlockOrNone", "$$ = ['_definiton', {deps: $1, args: $2, content: $3}]"],
-									 ["ReturnStatement Arguments FunctionBlockOrNone", "$$ = ['_definiton', {deps: {function: 1}, return: $1, args: $2, content: $3}]"],
-									 ["Dependencies ReturnStatement FunctionBlockOrNone", "$$ = ['_definiton', {deps: $1, return: $2, args: {}, content: $3}]"],
-									 ["Arguments FunctionBlockOrNone", "$$ = ['_definiton', {deps: {function: 1}, args: $1, content: $2}]"],
-									 ["Dependencies FunctionBlockOrNone", "$$ = ['_definiton', {deps: $1, args: {}, content: $2}]"],
-									 ["ReturnStatement FunctionBlockOrNone", "$$ = ['_definiton', {deps: {function:1}, return: $1, args: {}, content: $2}]"]
+		"Definition": [["EmptyDefinition", "$$=$1;$1[1].content = []"],
+									 ["ContentDefinition", "$$=$1"]
 									],
+		"ContentDefinition": [["EmptyDefinition FunctionBlock", "$$= $1;$1[1].content = $2;"]
+												 ],
+		"EmptyDefinition": [["Dependencies ReturnStatement Arguments", "$$ = ['_definiton', {deps: $1, return: $2, args: $3}]"],
+												["Dependencies Arguments", "$$ = ['_definiton', {deps: $1, args: $2}]"],
+												["ReturnStatement Arguments", "$$ = ['_definiton', {deps: {function: 1}, return: $1, args: $2}]"],
+												["Dependencies ReturnStatement", "$$ = ['_definiton', {deps: $1, return: $2, args: {}}]"],
+												["Arguments", "$$ = ['_definiton', {deps: {function: 1}, args: $1}]"],
+												["Dependencies", "$$ = ['_definiton', {deps: $1, args: {}}]"],
+												["ReturnStatement", "$$ = ['_definiton', {deps: {function:1}, return: $1, args: {}}]"]
+											 ],
 		"ReturnStatement": [["~ Id", "$$ = $2;"]],
-		"Dependencies": [[": DependencyArray", "$$ = $2;"]],
+		"Dependencies": [["& DependencyArray", "$$ = $2;"]],
 		"DependencyArray": [["Id", "$$ = {}; $$[$1] = 1"],
 												["DependencyArray , Id", "$$ = $1; $1[$3] = 1"]
 											 ],
@@ -166,8 +172,9 @@ var grammar = {
 		"ArgumentElement": [["Id", "$$ = [$1, {}]"],
 												["Property Id", "$$ = [$1, {type: $2}]"],
 												["Property *", "$$ = [$1, {etc: 1}]"],
-												["Id ? Unit", "$$ = [$1, {default: $3}]"],
-												["Property Id ? Unit", "$$ = [$1, {type: $2, default: $4}]"]
+												["Property ? Unit", "$$ = [$1, {default: $3}]"],
+												["Property Id ? Unit", "$$ = [$1, {type: $2, default: $4}]"],
+												["Id => Unit", "$$ = [$1, {default: $3, static: 1}]"]
 												],
 		"ArgumentArray": [["ArgumentElement", "$$={}; $$[$1[0]] = $1[1];"],
 											["ArgumentArray , ArgumentElement", "$$=$1; $$[$3[0]] = $3[1]"]

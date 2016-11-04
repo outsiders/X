@@ -1,1 +1,1 @@
-:clike
+&clike

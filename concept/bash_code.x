@@ -1,1 +1,1 @@
-:code, bash
+&code, bash
