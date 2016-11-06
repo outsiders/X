@@ -3,7 +3,6 @@ if(argv){
  var rtn ={
   script: $.eval(argv.script, {mark: '"'})
  }; 
- $.regobj(rtn);
  callback(rtn);
 }
 $$

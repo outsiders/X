@@ -110,7 +110,7 @@ var grammar = {
 		"Units": [["PreUnits", "$$ = $1"],
 							["PreUnits ContentDefinition", "$$ = $1; $1[1].content.push($2)"]
 						 ],
-		"PreUnits": [["Unit", "$$ = ['_sentence', {config:{},content: [$1]}];"],
+		"PreUnits": [["Unit", "$$ = ['_sentence', {config:{}, content: [$1]}];"],
 								 ["PreUnits Unit", "$$ = $1; $1[1].content.push($2)"],
 								 ["PropertyUnit", "$$ = ['_sentence', {config: {}, content: []}]; $$[1].config[$1[0]] = $1[1];"],
 								 ["PreUnits PropertyUnit", "$$ = $1; $1[1].config[$2[0]] = $2[1]"]

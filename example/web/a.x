@@ -1,5 +1,3 @@
-`setlang web`
+`set web`
 a = server;
-a.route "/a" @req {
-};
 a.start

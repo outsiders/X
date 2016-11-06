@@ -1,5 +1,3 @@
 ^^
-$.regobj({
- 
-});
+callback($.newsub());
 $$

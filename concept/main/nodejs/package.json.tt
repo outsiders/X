@@ -1,8 +1,10 @@
 ^^
 var _internal = {
- "buffer": 1,
- "crypto": 1,
- "fs": 1
+ buffer: 1,
+ crypto: 1,
+ fs: 1,
+ http: 1,
+ https: 1
 }
 $$
 {

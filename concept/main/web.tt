@@ -1,6 +1,6 @@
 ^^
-var servers = $.getobj("server");
-for(var key in servers){
-	$.regfile(key, servers[key]);
+$.eval(argv);
+for(var key in scope._subs){
+	$.sub(scope._subs[key], key);
 }
 $$

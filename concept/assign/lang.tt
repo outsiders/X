@@ -1,4 +1,10 @@
 ^^
-var tscope = $.access(argv[0]);
-tscope.value = $.eval(argv[1]);
+var iddef = $.access(argv[0]);
+var t = $.eval(argv[1]);
+if(typeof t == "object" && t._class){
+ $.regsub(iddef, t);
+ $.addsub(ast, iddef.id);
+}else{
+ iddef.value = t;
+}
 $$
